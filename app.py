@@ -21,19 +21,26 @@ def init_db():
             topic TEXT,
             difficulty TEXT,
             score INTEGER,
-            total INTEGER
+            total INTEGER,
+            questions TEXT,
+            answers TEXT
         )
     ''')
+    try:
+        c.execute('ALTER TABLE history ADD COLUMN questions TEXT')
+        c.execute('ALTER TABLE history ADD COLUMN answers TEXT')
+    except sqlite3.OperationalError:
+        pass # Columns already exist
     conn.commit()
     conn.close()
 
 init_db()
 
-def save_score(topic, difficulty, score, total):
+def save_score(topic, difficulty, score, total, questions_json, answers_json):
     conn = sqlite3.connect('quiz_history.db')
     c = conn.cursor()
-    c.execute('INSERT INTO history (date, topic, difficulty, score, total) VALUES (?, ?, ?, ?, ?)',
-              (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), topic, difficulty, score, total))
+    c.execute('INSERT INTO history (date, topic, difficulty, score, total, questions, answers) VALUES (?, ?, ?, ?, ?, ?, ?)',
+              (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), topic, difficulty, score, total, questions_json, answers_json))
     conn.commit()
     conn.close()
 
@@ -110,7 +117,7 @@ def create_pdf(questions, user_answers):
     pdf.add_page()
     pdf.set_font("Arial", size=11)
     
-    score = sum([1 for idx, q in enumerate(questions) if user_answers.get(idx) == q['correctIndex']])
+    score = sum([1 for idx, q in enumerate(questions) if user_answers.get(idx) == q['correctIndex'] or user_answers.get(str(idx)) == q['correctIndex']])
     
     pdf.set_font("Arial", 'B', 14)
     pdf.cell(0, 10, f"Score: {score} / {len(questions)}", 0, 1)
@@ -123,8 +130,11 @@ def create_pdf(questions, user_answers):
         pdf.multi_cell(0, 8, question_text)
         
         pdf.set_font("Arial", size=10)
+        u_ans = user_answers.get(str(idx))
+        if u_ans is None:
+            u_ans = user_answers.get(idx)
         for o_idx, opt in enumerate(q['options']):
-            prefix = "[x]" if user_answers.get(idx) == o_idx else "[ ]"
+            prefix = "[x]" if u_ans == o_idx else "[ ]"
             asterisk = " (CORRECT)" if o_idx == q['correctIndex'] else ""
             opt_text = f"{prefix} {chr(65+o_idx)}. {opt}{asterisk}".encode('latin-1', 'replace').decode('latin-1')
             pdf.multi_cell(0, 6, opt_text)
@@ -201,11 +211,65 @@ if nav_choice == "History Dashboard":
     if history_df.empty:
         st.info("No quiz history found. Take a quiz to see your progress!")
     else:
-        st.dataframe(history_df, use_container_width=True, hide_index=True)
+        # Avoid showing raw JSON to the user
+        display_df = history_df.drop(columns=['questions', 'answers'], errors='ignore')
         
-        st.write("### Score Trend (%)")
-        history_df['percentage'] = (history_df['score'] / history_df['total']) * 100
-        st.line_chart(history_df['percentage'])
+        st.markdown("<p style='color: #888; font-size: 0.9em; margin-bottom: 0.2rem;'>Click on any row below to view full quiz details.</p>", unsafe_allow_html=True)
+        event = st.dataframe(
+            display_df, 
+            use_container_width=True, 
+            hide_index=True, 
+            on_select="rerun",
+            selection_mode="single-row"
+        )
+        
+        if len(event.selection.rows):
+            selected_row_idx = event.selection.rows[0]
+            selected_record = history_df.iloc[selected_row_idx]
+            
+            st.divider()
+            st.write(f"### Quiz Details: {selected_record['topic']} ({selected_record['date']})")
+            st.write(f"**Score:** {selected_record['score']} / {selected_record['total']}")
+            
+            try:
+                hist_questions = json.loads(selected_record['questions']) if pd.notnull(selected_record.get('questions')) else []
+                hist_answers = json.loads(selected_record['answers']) if pd.notnull(selected_record.get('answers')) else {}
+            except Exception:
+                hist_questions = []
+                hist_answers = {}
+                
+            if not hist_questions:
+                st.warning("No detail data available for this older record. Take a new quiz to see details here.")
+            else:
+                for i, q in enumerate(hist_questions):
+                    st.markdown(f"#### Q{i+1}: {q['question']}")
+                    
+                    user_opt = hist_answers.get(str(i))
+                    if user_opt is None:
+                        user_opt = hist_answers.get(i)
+                        
+                    if isinstance(user_opt, str):
+                        try:
+                            user_opt = int(user_opt)
+                        except ValueError:
+                            user_opt = None
+                            
+                    correct_opt = q['correctIndex']
+                    
+                    for o_idx, opt in enumerate(q['options']):
+                        if o_idx == correct_opt:
+                            st.markdown(f"✅ **{chr(65+o_idx)}. {opt}**")
+                        elif o_idx == user_opt and user_opt != correct_opt:
+                            st.markdown(f"❌ ~~{chr(65+o_idx)}. {opt}~~")
+                        else:
+                            st.markdown(f"- {chr(65+o_idx)}. {opt}")
+                            
+                    st.info(f"**Explanation:**\n\n{q['explanation']}")
+                    st.divider()
+        else:
+            st.write("### Score Trend (%)")
+            display_df['percentage'] = (display_df['score'] / display_df['total']) * 100
+            st.line_chart(display_df['percentage'])
 
 else:
     # --- View Routing ---
@@ -272,7 +336,9 @@ else:
         
         # Save score instantly
         if not st.session_state.score_saved:
-            save_score(st.session_state.current_topic, st.session_state.current_difficulty, score, len(questions))
+            q_json = json.dumps(questions)
+            a_json = json.dumps(answers)
+            save_score(st.session_state.current_topic, st.session_state.current_difficulty, score, len(questions), q_json, a_json)
             st.session_state.score_saved = True
 
         st.success(f"## Practice Complete! Score: {score} / {len(questions)}")
