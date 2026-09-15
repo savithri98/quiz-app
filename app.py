@@ -23,7 +23,8 @@ def init_db():
             score INTEGER,
             total INTEGER,
             questions TEXT,
-            answers TEXT
+            answers TEXT,
+            username TEXT
         )
     ''')
     try:
@@ -31,22 +32,26 @@ def init_db():
         c.execute('ALTER TABLE history ADD COLUMN answers TEXT')
     except sqlite3.OperationalError:
         pass # Columns already exist
+    try:
+        c.execute('ALTER TABLE history ADD COLUMN username TEXT')
+    except sqlite3.OperationalError:
+        pass
     conn.commit()
     conn.close()
 
 init_db()
 
-def save_score(topic, difficulty, score, total, questions_json, answers_json):
+def save_score(username, topic, difficulty, score, total, questions_json, answers_json):
     conn = sqlite3.connect('quiz_history.db')
     c = conn.cursor()
-    c.execute('INSERT INTO history (date, topic, difficulty, score, total, questions, answers) VALUES (?, ?, ?, ?, ?, ?, ?)',
-              (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), topic, difficulty, score, total, questions_json, answers_json))
+    c.execute('INSERT INTO history (date, topic, difficulty, score, total, questions, answers, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+              (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), topic, difficulty, score, total, questions_json, answers_json, username))
     conn.commit()
     conn.close()
 
-def get_history():
+def get_history(username):
     conn = sqlite3.connect('quiz_history.db')
-    df = pd.read_sql_query('SELECT * FROM history ORDER BY id DESC', conn)
+    df = pd.read_sql_query('SELECT * FROM history WHERE username = ? ORDER BY id DESC', conn, params=(username,))
     conn.close()
     return df
 
@@ -147,6 +152,20 @@ def create_pdf(questions, user_answers):
         
     return pdf.output(dest="S").encode("latin-1")
 
+def create_domain_report_pdf(domain, content):
+    pdf = PDF()
+    pdf.add_page()
+    pdf.set_font("Arial", 'B', 16)
+    title = f"Study Manual: {domain}".encode('latin-1', 'replace').decode('latin-1')
+    pdf.cell(0, 10, title, 0, 1, 'C')
+    pdf.ln(5)
+    
+    pdf.set_font("Arial", size=11)
+    for line in content.split('\n'):
+        clean_line = line.encode('latin-1', 'replace').decode('latin-1')
+        pdf.multi_cell(0, 7, clean_line)
+    return pdf.output(dest="S").encode("latin-1")
+
 # --- AI Generation Utility ---
 def generate_questions(domain, difficulty, api_key):
     genai.configure(api_key=api_key)
@@ -178,7 +197,52 @@ Requirements:
     text = re.sub(r'```\n?', '', text, flags=re.IGNORECASE).strip()
     return json.loads(text)
 
+def generate_domain_report(domain, api_key):
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel('gemini-2.5-flash')
+    
+    internet_context = ""
+    try:
+        from duckduckgo_search import DDGS
+        results = DDGS().text(domain, max_results=3)
+        internet_context = "\n\n".join([f"Source ({r['title']}): {r['body']}" for r in results])
+    except Exception as e:
+        internet_context = "Could not reach the internet."
+
+    prompt = f"""You are a subject matter expert. Write an extremely comprehensive educational study manual about "{domain}".
+Use the following recent internet snippets to ensure the facts are up to date and accurate:
+{internet_context}
+
+Format Requirement: Write in plain text format only. Use simple paragraph breaks. DO NOT use markdown characters like asterisks (*), hashtags (#), bullet points (-), or backticks, as this breaks our PDF parser. 
+Include:
+1. Introduction
+2. Key Concepts & Principles
+3. Historical Context or Recent Trends
+4. Summary"""
+
+    response = model.generate_content(prompt)
+    return response.text
+
 # --- State Management ---
+if 'username' not in st.session_state:
+    st.session_state.username = None
+
+# If not logged in, show login screen
+if not st.session_state.username:
+    st.markdown("<h1 style='text-align: center; margin-top: 100px;'>Welcome to AI Exam Prep</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #a0a0a0;'>Please identify yourself to access your personal dashboard.</p>", unsafe_allow_html=True)
+    
+    with st.form("login"):
+        name_input = st.text_input("Enter your Username / Name:")
+        if st.form_submit_button("Sign In"):
+            if name_input.strip():
+                st.session_state.username = name_input.strip()
+                st.rerun()
+            else:
+                st.error("Name cannot be empty.")
+    st.stop()
+
+
 if 'questions' not in st.session_state:
     st.session_state.questions = None
 if 'answers' not in st.session_state:
@@ -191,28 +255,38 @@ if 'current_difficulty' not in st.session_state:
     st.session_state.current_difficulty = ""
 if 'score_saved' not in st.session_state:
     st.session_state.score_saved = False
+if 'report_pdf_bytes' not in st.session_state:
+    st.session_state.report_pdf_bytes = None
+if 'report_domain' not in st.session_state:
+    st.session_state.report_domain = None
 
 def restart():
     st.session_state.questions = None
     st.session_state.answers = {}
     st.session_state.submitted = False
     st.session_state.score_saved = False
+    st.session_state.report_pdf_bytes = None
+    st.session_state.report_domain = None
 
 st.markdown("<h1 style='text-align: center;'>AI MCQ Generator</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #a0a0a0; margin-bottom: 2rem;'>Master any domain with dynamic, AI-generated questions</p>", unsafe_allow_html=True)
 
 # Navigation
 st.sidebar.title("Navigation")
+st.sidebar.markdown(f"👤 Logged in as: **{st.session_state.username}**")
 nav_choice = st.sidebar.radio("Go to", ["Take a Quiz", "History Dashboard"], label_visibility="collapsed")
 
+if st.sidebar.button("Logout"):
+    st.session_state.clear()
+    st.rerun()
+
 if nav_choice == "History Dashboard":
-    st.subheader("Your Past Performance")
-    history_df = get_history()
+    st.subheader(f"Performance History for {st.session_state.username}")
+    history_df = get_history(st.session_state.username)
     if history_df.empty:
-        st.info("No quiz history found. Take a quiz to see your progress!")
+        st.info("No quiz history found for your account. Take a quiz to see your progress!")
     else:
-        # Avoid showing raw JSON to the user
-        display_df = history_df.drop(columns=['questions', 'answers'], errors='ignore')
+        display_df = history_df.drop(columns=['questions', 'answers', 'username'], errors='ignore')
         
         st.markdown("<p style='color: #888; font-size: 0.9em; margin-bottom: 0.2rem;'>Click on any row below to view full quiz details.</p>", unsafe_allow_html=True)
         event = st.dataframe(
@@ -239,7 +313,7 @@ if nav_choice == "History Dashboard":
                 hist_answers = {}
                 
             if not hist_questions:
-                st.warning("No detail data available for this older record. Take a new quiz to see details here.")
+                st.warning("No detail data available for this older record.")
             else:
                 for i, q in enumerate(hist_questions):
                     st.markdown(f"#### Q{i+1}: {q['question']}")
@@ -281,9 +355,13 @@ else:
             difficulty = st.selectbox("Difficulty", ["Mixed", "Easy", "Medium", "Hard"])
             api_key = st.text_input("Gemini API Key", type="password")
             
-            submitted = st.form_submit_button("Generate 10 MCQs")
-            
-            if submitted:
+            col1, col2 = st.columns(2)
+            with col1:
+                submitted_quiz = st.form_submit_button("Generate 10 MCQs")
+            with col2:
+                submitted_report = st.form_submit_button("Fetch Detailed Study Manual")
+                
+            if submitted_quiz:
                 if not domain:
                     st.error("Please enter a domain.")
                 elif not api_key:
@@ -301,6 +379,31 @@ else:
                             st.rerun()
                         except Exception as e:
                             st.error(f"Generation failed: {str(e)}")
+                            
+            if submitted_report:
+                if not domain:
+                    st.error("Please enter a domain.")
+                elif not api_key:
+                    st.error("Please enter your API Key.")
+                else:
+                    with st.spinner(f"Searching internet and synthesizing study manual for {domain}..."):
+                        try:
+                            report_text = generate_domain_report(domain, api_key)
+                            pdf_bytes = create_domain_report_pdf(domain, report_text)
+                            st.session_state.report_pdf_bytes = pdf_bytes
+                            st.session_state.report_domain = domain
+                        except Exception as e:
+                            st.error(f"Report generation failed: {str(e)}")
+
+        if st.session_state.report_pdf_bytes:
+            st.success(f"Study Manual for '{st.session_state.report_domain}' generated successfully!")
+            st.download_button(
+                label=f"Download {st.session_state.report_domain} Manual PDF",
+                data=st.session_state.report_pdf_bytes,
+                file_name=f"{st.session_state.report_domain}_StudyGuide.pdf",
+                mime="application/pdf",
+                type="primary"
+            )
 
     elif not st.session_state.submitted:
         # 2. QUIZ SCREEN
@@ -338,7 +441,7 @@ else:
         if not st.session_state.score_saved:
             q_json = json.dumps(questions)
             a_json = json.dumps(answers)
-            save_score(st.session_state.current_topic, st.session_state.current_difficulty, score, len(questions), q_json, a_json)
+            save_score(st.session_state.username, st.session_state.current_topic, st.session_state.current_difficulty, score, len(questions), q_json, a_json)
             st.session_state.score_saved = True
 
         st.success(f"## Practice Complete! Score: {score} / {len(questions)}")
@@ -352,9 +455,9 @@ else:
                 st.rerun()
         with col2:
             st.download_button(
-                label="Download PDF Report",
+                label="Download Quiz Report PDF",
                 data=pdf_bytes,
-                file_name="Exam_Prep_Report.pdf",
+                file_name="Quiz_Result_Report.pdf",
                 mime="application/pdf"
             )
         
