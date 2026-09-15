@@ -7,6 +7,9 @@ import base64
 import sqlite3
 import pandas as pd
 from datetime import datetime
+import tempfile
+import os
+import urllib.request
 
 st.set_page_config(page_title="AI MCQ Prep", page_icon="📝", layout="centered")
 
@@ -152,7 +155,7 @@ def create_pdf(questions, user_answers):
         
     return pdf.output(dest="S").encode("latin-1")
 
-def create_domain_report_pdf(domain, content):
+def create_domain_report_pdf(domain, content, image_paths=None):
     pdf = PDF()
     pdf.add_page()
     pdf.set_font("Arial", 'B', 16)
@@ -160,10 +163,34 @@ def create_domain_report_pdf(domain, content):
     pdf.cell(0, 10, title, 0, 1, 'C')
     pdf.ln(5)
     
+    # Embed images at the top if available
+    if image_paths:
+        for img_path in image_paths:
+            try:
+                pdf.image(img_path, x=15, w=180)
+                pdf.ln(5)
+            except Exception:
+                pass
+        pdf.add_page()
+    
     pdf.set_font("Arial", size=11)
     for line in content.split('\n'):
-        clean_line = line.encode('latin-1', 'replace').decode('latin-1')
-        pdf.multi_cell(0, 7, clean_line)
+        stripped = line.strip()
+        if not stripped:
+            pdf.ln(3)
+            continue
+        # Detect section headers (lines ending with colon or all caps short lines)
+        if stripped.endswith(':') and len(stripped) < 80:
+            pdf.ln(4)
+            pdf.set_font("Arial", 'B', 13)
+            pdf.multi_cell(0, 8, stripped.encode('latin-1', 'replace').decode('latin-1'))
+            pdf.set_font("Arial", size=11)
+        elif stripped.startswith('- ') or stripped.startswith('> '):
+            bullet_text = f"  {stripped}".encode('latin-1', 'replace').decode('latin-1')
+            pdf.multi_cell(0, 6, bullet_text)
+        else:
+            clean_line = stripped.encode('latin-1', 'replace').decode('latin-1')
+            pdf.multi_cell(0, 7, clean_line)
     return pdf.output(dest="S").encode("latin-1")
 
 # --- AI Generation Utility ---
@@ -197,6 +224,24 @@ Requirements:
     text = re.sub(r'```\n?', '', text, flags=re.IGNORECASE).strip()
     return json.loads(text)
 
+def fetch_domain_images(domain):
+    """Fetch relevant images from DuckDuckGo and save to temp files."""
+    image_paths = []
+    try:
+        from duckduckgo_search import DDGS
+        results = DDGS().images(domain, max_results=3)
+        for idx, r in enumerate(results):
+            try:
+                url = r['image']
+                tmp_path = os.path.join(tempfile.gettempdir(), f"domain_img_{idx}.jpg")
+                urllib.request.urlretrieve(url, tmp_path)
+                image_paths.append(tmp_path)
+            except Exception:
+                continue
+    except Exception:
+        pass
+    return image_paths
+
 def generate_domain_report(domain, api_key):
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel('gemini-2.5-flash')
@@ -204,7 +249,7 @@ def generate_domain_report(domain, api_key):
     internet_context = ""
     try:
         from duckduckgo_search import DDGS
-        results = DDGS().text(domain, max_results=3)
+        results = DDGS().text(domain, max_results=5)
         internet_context = "\n\n".join([f"Source ({r['title']}): {r['body']}" for r in results])
     except Exception as e:
         internet_context = "Could not reach the internet."
@@ -213,12 +258,20 @@ def generate_domain_report(domain, api_key):
 Use the following recent internet snippets to ensure the facts are up to date and accurate:
 {internet_context}
 
-Format Requirement: Write in plain text format only. Use simple paragraph breaks. DO NOT use markdown characters like asterisks (*), hashtags (#), bullet points (-), or backticks, as this breaks our PDF parser. 
-Include:
-1. Introduction
-2. Key Concepts & Principles
-3. Historical Context or Recent Trends
-4. Summary"""
+FORMATTING RULES (STRICTLY FOLLOW):
+- Write EVERY piece of information as a bullet point starting with "- "
+- Group bullet points under section headers. Write section headers as a short title followed by a colon, e.g. "Introduction:"
+- DO NOT use markdown characters like asterisks (*), hashtags (#), or backticks (`)
+- DO NOT write long paragraphs. Every sentence should be its own bullet point.
+
+Sections to include:
+Introduction:
+Key Concepts and Principles:
+Important Facts and Figures:
+Historical Context:
+Recent Trends and Developments:
+Common Exam Questions and Tips:
+Summary:"""
 
     response = model.generate_content(prompt)
     return response.text
@@ -389,7 +442,8 @@ else:
                     with st.spinner(f"Searching internet and synthesizing study manual for {domain}..."):
                         try:
                             report_text = generate_domain_report(domain, api_key)
-                            pdf_bytes = create_domain_report_pdf(domain, report_text)
+                            image_paths = fetch_domain_images(domain)
+                            pdf_bytes = create_domain_report_pdf(domain, report_text, image_paths)
                             st.session_state.report_pdf_bytes = pdf_bytes
                             st.session_state.report_domain = domain
                         except Exception as e:
