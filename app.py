@@ -4,7 +4,8 @@ import json
 import re
 from fpdf import FPDF
 import base64
-import sqlite3
+import gspread
+from google.oauth2.service_account import Credentials
 import pandas as pd
 from datetime import datetime
 import tempfile
@@ -13,49 +14,62 @@ import urllib.request
 
 st.set_page_config(page_title="AI MCQ Prep", page_icon="📝", layout="centered")
 
-# --- Database Setup ---
-def init_db():
-    conn = sqlite3.connect('quiz_history.db')
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date TEXT,
-            topic TEXT,
-            difficulty TEXT,
-            score INTEGER,
-            total INTEGER,
-            questions TEXT,
-            answers TEXT,
-            username TEXT
-        )
-    ''')
-    try:
-        c.execute('ALTER TABLE history ADD COLUMN questions TEXT')
-        c.execute('ALTER TABLE history ADD COLUMN answers TEXT')
-    except sqlite3.OperationalError:
-        pass # Columns already exist
-    try:
-        c.execute('ALTER TABLE history ADD COLUMN username TEXT')
-    except sqlite3.OperationalError:
-        pass
-    conn.commit()
-    conn.close()
+# --- Google Sheets Database ---
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+]
 
-init_db()
+@st.cache_resource
+def get_gsheet_connection():
+    """Create a persistent Google Sheets connection using Streamlit secrets."""
+    creds = Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"],
+        scopes=SCOPES
+    )
+    client = gspread.authorize(creds)
+    return client
+
+def get_or_create_sheet():
+    """Get or create the quiz history spreadsheet and worksheet."""
+    client = get_gsheet_connection()
+    SHEET_NAME = "AI_MCQ_Quiz_History"
+    try:
+        spreadsheet = client.open(SHEET_NAME)
+    except gspread.SpreadsheetNotFound:
+        spreadsheet = client.create(SHEET_NAME)
+        spreadsheet.share(None, perm_type='anyone', role='writer')
+    
+    try:
+        worksheet = spreadsheet.worksheet("history")
+    except gspread.WorksheetNotFound:
+        worksheet = spreadsheet.add_worksheet(title="history", rows=1000, cols=8)
+        worksheet.append_row(["date", "topic", "difficulty", "score", "total", "questions", "answers", "username"])
+    
+    return worksheet
 
 def save_score(username, topic, difficulty, score, total, questions_json, answers_json):
-    conn = sqlite3.connect('quiz_history.db')
-    c = conn.cursor()
-    c.execute('INSERT INTO history (date, topic, difficulty, score, total, questions, answers, username) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-              (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), topic, difficulty, score, total, questions_json, answers_json, username))
-    conn.commit()
-    conn.close()
+    ws = get_or_create_sheet()
+    row = [
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        topic,
+        difficulty,
+        score,
+        total,
+        questions_json,
+        answers_json,
+        username
+    ]
+    ws.append_row(row, value_input_option='RAW')
 
 def get_history(username):
-    conn = sqlite3.connect('quiz_history.db')
-    df = pd.read_sql_query('SELECT * FROM history WHERE username = ? ORDER BY id DESC', conn, params=(username,))
-    conn.close()
+    ws = get_or_create_sheet()
+    records = ws.get_all_records()
+    if not records:
+        return pd.DataFrame()
+    df = pd.DataFrame(records)
+    df = df[df['username'] == username].reset_index(drop=True)
+    df = df.iloc[::-1].reset_index(drop=True)  # newest first
     return df
 
 # --- Aesthetic Overhaul (CSS) ---
@@ -359,8 +373,10 @@ if nav_choice == "History Dashboard":
             st.write(f"**Score:** {selected_record['score']} / {selected_record['total']}")
             
             try:
-                hist_questions = json.loads(selected_record['questions']) if pd.notnull(selected_record.get('questions')) else []
-                hist_answers = json.loads(selected_record['answers']) if pd.notnull(selected_record.get('answers')) else {}
+                q_val = selected_record.get('questions', '')
+                a_val = selected_record.get('answers', '')
+                hist_questions = json.loads(q_val) if q_val else []
+                hist_answers = json.loads(a_val) if a_val else {}
             except Exception:
                 hist_questions = []
                 hist_answers = {}
@@ -395,6 +411,8 @@ if nav_choice == "History Dashboard":
                     st.divider()
         else:
             st.write("### Score Trend (%)")
+            display_df['score'] = pd.to_numeric(display_df['score'], errors='coerce')
+            display_df['total'] = pd.to_numeric(display_df['total'], errors='coerce')
             display_df['percentage'] = (display_df['score'] / display_df['total']) * 100
             st.line_chart(display_df['percentage'])
 
