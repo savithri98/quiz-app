@@ -23,8 +23,12 @@ SCOPES = [
 @st.cache_resource
 def get_gsheet_connection():
     """Create a persistent Google Sheets connection using Streamlit secrets."""
+    creds_dict = dict(st.secrets["gcp_service_account"])
+    if "private_key" in creds_dict:
+        creds_dict["private_key"] = creds_dict["private_key"].replace('\\n', '\n')
+        
     creds = Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"],
+        creds_dict,
         scopes=SCOPES
     )
     client = gspread.authorize(creds)
