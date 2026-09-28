@@ -25,8 +25,18 @@ def get_gsheet_connection():
     """Create a persistent Google Sheets connection using Streamlit secrets."""
     creds_dict = dict(st.secrets["gcp_service_account"])
     if "private_key" in creds_dict:
-        creds_dict["private_key"] = creds_dict["private_key"].replace('\\n', '\n')
-        
+        pk = creds_dict["private_key"]
+        # Extract base64 body between headers and reconstruct cleanly
+        match = re.search(r"-----BEGIN PRIVATE KEY-----(.*?)-----END PRIVATE KEY-----", pk, re.DOTALL | re.IGNORECASE)
+        if match:
+            # Remove all forms of whitespace/newlines from the middle base64 content
+            body = re.sub(r'\s+', '', match.group(1))
+            # Format cleanly as PEM
+            creds_dict["private_key"] = f"-----BEGIN PRIVATE KEY-----\n{body}\n-----END PRIVATE KEY-----\n"
+        else:
+            # Fallback if regex fails (e.g. missing headers altogether)
+            creds_dict["private_key"] = pk.replace('\\n', '\n')
+            
     creds = Credentials.from_service_account_info(
         creds_dict,
         scopes=SCOPES
