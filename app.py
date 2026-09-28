@@ -4,90 +4,58 @@ import json
 import re
 from fpdf import FPDF
 import base64
-import gspread
-from google.oauth2.service_account import Credentials
 import pandas as pd
 from datetime import datetime
+import tempfile
+import os
+import urllib.request
+from supabase import create_client, Client
 import tempfile
 import os
 import urllib.request
 
 st.set_page_config(page_title="AI MCQ Prep", page_icon="📝", layout="centered")
 
-# --- Google Sheets Database ---
-SCOPES = [
-    "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive"
-]
-
+# --- Supabase Database ---
 @st.cache_resource
-def get_gsheet_connection():
-    """Create a persistent Google Sheets connection using Streamlit secrets."""
+def get_supabase_client() -> Client:
+    """Create a persistent Supabase connection."""
     try:
-        creds_dict = dict(st.secrets["gcp_service_account"])
-        if "private_key" in creds_dict:
-            pk = creds_dict["private_key"]
-            match = re.search(r"-----BEGIN PRIVATE KEY-----(.*?)-----END PRIVATE KEY-----", pk, re.DOTALL | re.IGNORECASE)
-            if match:
-                body = re.sub(r'\s+', '', match.group(1))
-                creds_dict["private_key"] = f"-----BEGIN PRIVATE KEY-----\n{body}\n-----END PRIVATE KEY-----\n"
-            else:
-                creds_dict["private_key"] = pk.replace('\\n', '\n')
-                
-        creds = Credentials.from_service_account_info(
-            creds_dict,
-            scopes=SCOPES
-        )
-        client = gspread.authorize(creds)
-        return client
+        url = st.secrets["SUPABASE_URL"]
+        key = st.secrets["SUPABASE_KEY"]
+        return create_client(url, key)
     except Exception as e:
-        st.error(f"⚠️ **Google Sheets Authentication Failed!**\n\nThe app could not read your Google Service Account Secrets. The precise error is: `{str(e)}`")
-        if "gcp_service_account" in st.secrets:
-            pk = st.secrets["gcp_service_account"].get("private_key", "")
-            st.warning(f"**Diagnostic Info:**\n- Private Key Length: {len(pk)} characters\n- Contains BEGIN header: {'-----BEGIN PRIVATE KEY-----' in pk}\n- Contains END header: {'-----END PRIVATE KEY-----' in pk}\n\nPlease check your Streamlit Cloud Secrets and ensure you pasted the ENTIRE JSON file correctly.")
+        st.error("⚠️ **Supabase Authentication Failed!**")
+        st.warning("Please ensure you have added both `SUPABASE_URL` and `SUPABASE_KEY` to your Streamlit Cloud Secrets.")
         st.stop()
 
-def get_or_create_sheet():
-    """Get or create the quiz history spreadsheet and worksheet."""
-    client = get_gsheet_connection()
-    SHEET_NAME = "AI_MCQ_Quiz_History"
-    try:
-        spreadsheet = client.open(SHEET_NAME)
-    except gspread.SpreadsheetNotFound:
-        spreadsheet = client.create(SHEET_NAME)
-        spreadsheet.share(None, perm_type='anyone', role='writer')
-    
-    try:
-        worksheet = spreadsheet.worksheet("history")
-    except gspread.WorksheetNotFound:
-        worksheet = spreadsheet.add_worksheet(title="history", rows=1000, cols=8)
-        worksheet.append_row(["date", "topic", "difficulty", "score", "total", "questions", "answers", "username"])
-    
-    return worksheet
-
 def save_score(username, topic, difficulty, score, total, questions_json, answers_json):
-    ws = get_or_create_sheet()
-    row = [
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        topic,
-        difficulty,
-        score,
-        total,
-        questions_json,
-        answers_json,
-        username
-    ]
-    ws.append_row(row, value_input_option='RAW')
+    supa = get_supabase_client()
+    data = {
+        "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "topic": topic,
+        "difficulty": difficulty,
+        "score": score,
+        "total": total,
+        "questions": questions_json,
+        "answers": answers_json,
+        "username": username
+    }
+    try:
+        supa.table("history").insert(data).execute()
+    except Exception as e:
+        st.error(f"Failed to save score. Ensure the `history` table exists in Supabase. Error: {e}")
 
 def get_history(username):
-    ws = get_or_create_sheet()
-    records = ws.get_all_records()
-    if not records:
+    supa = get_supabase_client()
+    try:
+        response = supa.table("history").select("*").eq("username", username).order("id", desc=True).execute()
+        data = response.data
+        if not data:
+            return pd.DataFrame()
+        return pd.DataFrame(data)
+    except Exception:
         return pd.DataFrame()
-    df = pd.DataFrame(records)
-    df = df[df['username'] == username].reset_index(drop=True)
-    df = df.iloc[::-1].reset_index(drop=True)  # newest first
-    return df
 
 # --- Aesthetic Overhaul (CSS) ---
 st.markdown("""
