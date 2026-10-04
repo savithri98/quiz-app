@@ -4,3 +4,4 @@ fpdf==1.7.2
 pandas>=2.0.0
 duckduckgo-search>=5.0.0
 supabase>=2.3.0
+youtube-transcript-api>=0.6.0
