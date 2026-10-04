@@ -13,6 +13,7 @@ from supabase import create_client, Client
 import tempfile
 import os
 import urllib.request
+from youtube_transcript_api import YouTubeTranscriptApi
 
 st.set_page_config(page_title="AI MCQ Prep", page_icon="📝", layout="centered")
 
@@ -223,6 +224,50 @@ Requirements:
     text = re.sub(r'```\n?', '', text, flags=re.IGNORECASE).strip()
     return json.loads(text)
 
+def extract_youtube_id(url):
+    match = re.search(r"(?:v=|\/)([0-9A-Za-z_-]{11}).*", url)
+    return match.group(1) if match else None
+
+def generate_youtube_questions(youtube_url, difficulty, api_key):
+    vid_id = extract_youtube_id(youtube_url)
+    if not vid_id:
+        raise ValueError("Invalid YouTube URL")
+    
+    transcript_list = YouTubeTranscriptApi.get_transcript(vid_id)
+    transcript = " ".join([t['text'] for t in transcript_list])
+    
+    # Cap transcript length so we don't blow up token limits
+    transcript = transcript[:15000] 
+    
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel('gemini-2.5-flash')
+    
+    diff_prompt = "a mix of Easy, Medium, and Hard" if difficulty == "Mixed" else f"strictly {difficulty}"
+    prompt = f"""You are an expert exam setter. Read this video transcript and generate exactly 10 distinct, unique Multiple Choice Questions based strictly on the content of the video.
+Transcript Snippet: {transcript}
+Difficulty: {diff_prompt}
+
+Requirements:
+1. Output exactly 10 questions. No more, no less.
+2. Each question must have exactly 4 options.
+3. Indicate the correct option index (0 to 3).
+4. Provide a detailed explanation for the correct answer. 
+5. Your response MUST be valid JSON, conforming to exactly this structure:
+[
+  {{
+    "question": "string",
+    "options": ["string", "string", "string", "string"],
+    "correctIndex": integer,
+    "difficulty": "Easy" | "Medium" | "Hard",
+    "explanation": "string"
+  }}
+]"""
+    response = model.generate_content(prompt)
+    text = response.text
+    text = re.sub(r'```json\n?', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'```\n?', '', text, flags=re.IGNORECASE).strip()
+    return json.loads(text)
+
 def fetch_domain_images(domain):
     """Fetch relevant images from DuckDuckGo and save to temp files."""
     image_paths = []
@@ -406,51 +451,82 @@ else:
     if st.session_state.questions is None:
         # 1. SETUP SCREEN
         st.subheader("Configure Your Practice")
-        with st.form("setup_form"):
-            domain = st.text_input("Topic / Domain (e.g. Quantum Physics, History)")
-            difficulty = st.selectbox("Difficulty", ["Mixed", "Easy", "Medium", "Hard"])
-            api_key = st.text_input("Gemini API Key", type="password")
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                submitted_quiz = st.form_submit_button("Generate 10 MCQs")
-            with col2:
-                submitted_report = st.form_submit_button("Fetch Detailed Study Manual")
+        
+        tab_domain, tab_youtube = st.tabs(["Topic / Domain", "YouTube Video"])
+        
+        with tab_domain:
+            with st.form("setup_form_domain"):
+                domain = st.text_input("Topic / Domain (e.g. Quantum Physics, History)")
+                difficulty = st.selectbox("Difficulty", ["Mixed", "Easy", "Medium", "Hard"])
+                api_key = st.text_input("Gemini API Key", type="password")
                 
-            if submitted_quiz:
-                if not domain:
-                    st.error("Please enter a domain.")
-                elif not api_key:
-                    st.error("Please enter your API Key.")
-                else:
-                    with st.spinner("Generating distinct questions..."):
-                        try:
-                            data = generate_questions(domain, difficulty, api_key)
-                            st.session_state.questions = data
-                            st.session_state.answers = {}
-                            st.session_state.submitted = False
-                            st.session_state.current_topic = domain
-                            st.session_state.current_difficulty = difficulty
-                            st.session_state.score_saved = False
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Generation failed: {str(e)}")
-                            
-            if submitted_report:
-                if not domain:
-                    st.error("Please enter a domain.")
-                elif not api_key:
-                    st.error("Please enter your API Key.")
-                else:
-                    with st.spinner(f"Searching internet and synthesizing study manual for {domain}..."):
-                        try:
-                            report_text = generate_domain_report(domain, api_key)
-                            image_paths = fetch_domain_images(domain)
-                            pdf_bytes = create_domain_report_pdf(domain, report_text, image_paths)
-                            st.session_state.report_pdf_bytes = pdf_bytes
-                            st.session_state.report_domain = domain
-                        except Exception as e:
-                            st.error(f"Report generation failed: {str(e)}")
+                col1, col2 = st.columns(2)
+                with col1:
+                    submitted_quiz = st.form_submit_button("Generate 10 MCQs")
+                with col2:
+                    submitted_report = st.form_submit_button("Fetch Detailed Study Manual")
+                    
+                if submitted_quiz:
+                    if not domain:
+                        st.error("Please enter a domain.")
+                    elif not api_key:
+                        st.error("Please enter your API Key.")
+                    else:
+                        with st.spinner("Generating distinct questions..."):
+                            try:
+                                data = generate_questions(domain, difficulty, api_key)
+                                st.session_state.questions = data
+                                st.session_state.answers = {}
+                                st.session_state.submitted = False
+                                st.session_state.current_topic = domain
+                                st.session_state.current_difficulty = difficulty
+                                st.session_state.score_saved = False
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Generation failed: {str(e)}")
+                                
+                if submitted_report:
+                    if not domain:
+                        st.error("Please enter a domain.")
+                    elif not api_key:
+                        st.error("Please enter your API Key.")
+                    else:
+                        with st.spinner(f"Searching internet and synthesizing study manual for {domain}..."):
+                            try:
+                                report_text = generate_domain_report(domain, api_key)
+                                image_paths = fetch_domain_images(domain)
+                                pdf_bytes = create_domain_report_pdf(domain, report_text, image_paths)
+                                st.session_state.report_pdf_bytes = pdf_bytes
+                                st.session_state.report_domain = domain
+                            except Exception as e:
+                                st.error(f"Report generation failed: {str(e)}")
+                                
+        with tab_youtube:
+            with st.form("setup_form_youtube"):
+                youtube_url = st.text_input("YouTube Video URL")
+                yt_difficulty = st.selectbox("Difficulty", ["Mixed", "Easy", "Medium", "Hard"], key="yt_diff")
+                yt_api_key = st.text_input("Gemini API Key", type="password", key="yt_key")
+                
+                submitted_yt_quiz = st.form_submit_button("Generate MCQs from Video")
+                
+                if submitted_yt_quiz:
+                    if not youtube_url:
+                        st.error("Please enter a YouTube URL.")
+                    elif not yt_api_key:
+                        st.error("Please enter your API Key.")
+                    else:
+                        with st.spinner("Fetching transcript and generating questions..."):
+                            try:
+                                data = generate_youtube_questions(youtube_url, yt_difficulty, yt_api_key)
+                                st.session_state.questions = data
+                                st.session_state.answers = {}
+                                st.session_state.submitted = False
+                                st.session_state.current_topic = f"YouTube: {youtube_url[:30]}..."
+                                st.session_state.current_difficulty = yt_difficulty
+                                st.session_state.score_saved = False
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Generation failed: {str(e)}")
 
         if st.session_state.report_pdf_bytes:
             st.success(f"Study Manual for '{st.session_state.report_domain}' generated successfully!")
