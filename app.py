@@ -58,6 +58,23 @@ def get_history(username):
     except Exception:
         return pd.DataFrame()
 
+def get_ca_from_db(date_str):
+    supa = get_supabase_client()
+    try:
+        response = supa.table("current_affairs").select("content").eq("date", date_str).execute()
+        if response.data:
+            return response.data[0]["content"]
+    except Exception:
+        pass
+    return None
+
+def save_ca_to_db(date_str, content):
+    supa = get_supabase_client()
+    try:
+        supa.table("current_affairs").upsert({"date": date_str, "content": content}).execute()
+    except Exception:
+        pass
+
 # --- Aesthetic Overhaul (CSS) ---
 st.markdown("""
 <style>
@@ -340,6 +357,36 @@ Summary:"""
     response = model.generate_content(prompt)
     return response.text
 
+def generate_current_affairs_report(date_str, api_key):
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel('gemini-2.5-flash')
+    
+    internet_context = ""
+    try:
+        from duckduckgo_search import DDGS
+        # Search for news specifically on that date related to India
+        search_query = f"India Current affairs top news {date_str}"
+        results = DDGS().text(search_query, max_results=10)
+        internet_context = "\n\n".join([f"Source ({r['title']}): {r['body']}" for r in results])
+    except Exception:
+        internet_context = "Could not reach the internet."
+        
+    prompt = f"""You are a master civil services exam setter for Indian competitive exams (like KPSC/UPSC).
+Your task is to write a highly detailed, systematic, point-by-point Daily Current Affairs brief for India on exactly this date: {date_str}.
+
+Use the following internet search snippets to ensure your facts are accurate for that specific day:
+{internet_context}
+
+FORMATTING RULES:
+- Write strictly in Markdown. Cover National, International (affecting India), Economy, and Science/Tech.
+- Use clear bullet points.
+- Highlight key terms or names in **bold**.
+- Be purely educational and factual, tailored for a student preparing for KRIES / KPSC exams.
+- If the internet snippets don't have enough data for that exact date, provide general important current affairs from that specific month/week of that year."""
+    
+    response = model.generate_content(prompt)
+    return response.text
+
 # --- State Management ---
 if 'username' not in st.session_state:
     st.session_state.username = None
@@ -391,7 +438,7 @@ st.markdown("<p style='text-align: center; color: #a0a0a0; margin-bottom: 2rem;'
 # Navigation
 st.sidebar.title("Navigation")
 st.sidebar.markdown(f"👤 Logged in as: **{st.session_state.username}**")
-nav_choice = st.sidebar.radio("Go to", ["Take a Quiz", "History Dashboard"], label_visibility="collapsed")
+nav_choice = st.sidebar.radio("Go to", ["Take a Quiz", "History Dashboard", "Current Affairs 🇮🇳"], label_visibility="collapsed")
 
 if st.sidebar.button("Logout"):
     st.session_state.clear()
@@ -465,6 +512,39 @@ if nav_choice == "History Dashboard":
             display_df['total'] = pd.to_numeric(display_df['total'], errors='coerce')
             display_df['percentage'] = (display_df['score'] / display_df['total']) * 100
             st.line_chart(display_df['percentage'])
+
+elif nav_choice == "Current Affairs 🇮🇳":
+    st.subheader("Daily India Current Affairs 🇮🇳")
+    st.markdown("Select a date to fetch or generate the current affairs for that specific day.")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        selected_date = st.date_input("Select Date", value=datetime.today(), min_value=datetime(2025, 8, 1), max_value=datetime.today())
+    with col2:
+        st.markdown("<br>", unsafe_allow_html=True)
+        api_key_ca = st.text_input("Gemini API Key (if generating new)", type="password", key="ca_api_key")
+        
+    date_str = selected_date.strftime("%Y-%m-%d")
+    
+    if st.button("Load / Generate Current Affairs"):
+        with st.spinner("Checking Database..."):
+            ca_content = get_ca_from_db(date_str)
+            
+        if ca_content:
+            st.success("Loaded instantly from Database Cache! ✅")
+            st.markdown(ca_content)
+        else:
+            if not api_key_ca:
+                st.error("This date hasn't been generated yet. Please enter your Gemini API Key to let the AI search and synthesize it!")
+            else:
+                with st.spinner(f"First time generating for {date_str}. Searching the internet and synthesizing..."):
+                    try:
+                        ca_content = generate_current_affairs_report(date_str, api_key_ca)
+                        save_ca_to_db(date_str, ca_content)
+                        st.success("Generated and permanently cached to database! ✅")
+                        st.markdown(ca_content)
+                    except Exception as e:
+                        st.error(f"Generation failed: {str(e)}")
 
 else:
     # --- View Routing ---
