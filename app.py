@@ -357,32 +357,34 @@ Summary:"""
     response = model.generate_content(prompt)
     return response.text
 
-def generate_current_affairs_report(date_str, api_key):
+def generate_current_affairs_report(date_str, region, api_key):
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel('gemini-2.5-flash')
+    
+    search_topic = "Karnataka State" if region == "Karnataka" else "India"
     
     internet_context = ""
     try:
         from duckduckgo_search import DDGS
-        # Search for news specifically on that date related to India
-        search_query = f"India Current affairs top news {date_str}"
+        # Search for news specifically on that date related to the region
+        search_query = f"{search_topic} Current affairs top news {date_str}"
         results = DDGS().text(search_query, max_results=10)
         internet_context = "\n\n".join([f"Source ({r['title']}): {r['body']}" for r in results])
     except Exception:
         internet_context = "Could not reach the internet."
         
     prompt = f"""You are a master civil services exam setter for Indian competitive exams (like KPSC/UPSC).
-Your task is to write a highly detailed, systematic, point-by-point Daily Current Affairs brief for India on exactly this date: {date_str}.
+Your task is to write a highly detailed, systematic, point-by-point Daily Current Affairs brief specifically focusing on **{search_topic}** for exactly this date: {date_str}.
 
 Use the following internet search snippets to ensure your facts are accurate for that specific day:
 {internet_context}
 
 FORMATTING RULES:
-- Write strictly in Markdown. Cover National, International (affecting India), Economy, and Science/Tech.
+- Write strictly in Markdown. Cover Politics, Economy, Science/Tech, and Social Issues relevant to {search_topic}.
 - Use clear bullet points.
-- Highlight key terms or names in **bold**.
+- Highlight key terms, schemes, or names in **bold**.
 - Be purely educational and factual, tailored for a student preparing for KRIES / KPSC exams.
-- If the internet snippets don't have enough data for that exact date, provide general important current affairs from that specific month/week of that year."""
+- If the internet snippets don't have enough data for that exact date, provide general important current affairs from that specific month/week of that year for {search_topic}."""
     
     response = model.generate_content(prompt)
     return response.text
@@ -514,8 +516,11 @@ if nav_choice == "History Dashboard":
             st.line_chart(display_df['percentage'])
 
 elif nav_choice == "Current Affairs 🇮🇳":
-    st.subheader("Daily India Current Affairs 🇮🇳")
-    st.markdown("Select a date to fetch or generate the current affairs for that specific day.")
+    st.subheader("Daily Current Affairs Portal")
+    st.markdown("Select a date and region to fetch or generate the current affairs for that specific day.")
+    
+    region_choice = st.radio("Select Scope:", ["National (India 🇮🇳)", "Karnataka State 🟡🔴"], horizontal=True)
+    region_key = "Karnataka" if "Karnataka" in region_choice else "India"
     
     col1, col2 = st.columns(2)
     with col1:
@@ -525,10 +530,11 @@ elif nav_choice == "Current Affairs 🇮🇳":
         api_key_ca = st.text_input("Gemini API Key (if generating new)", type="password", key="ca_api_key")
         
     date_str = selected_date.strftime("%Y-%m-%d")
+    cache_key = f"{date_str}_{region_key}"
     
     if st.button("Load / Generate Current Affairs"):
         with st.spinner("Checking Database..."):
-            ca_content = get_ca_from_db(date_str)
+            ca_content = get_ca_from_db(cache_key)
             
         if ca_content:
             st.success("Loaded instantly from Database Cache! ✅")
@@ -537,10 +543,10 @@ elif nav_choice == "Current Affairs 🇮🇳":
             if not api_key_ca:
                 st.error("This date hasn't been generated yet. Please enter your Gemini API Key to let the AI search and synthesize it!")
             else:
-                with st.spinner(f"First time generating for {date_str}. Searching the internet and synthesizing..."):
+                with st.spinner(f"First time generating {region_key} news for {date_str}. Searching the internet and synthesizing..."):
                     try:
-                        ca_content = generate_current_affairs_report(date_str, api_key_ca)
-                        save_ca_to_db(date_str, ca_content)
+                        ca_content = generate_current_affairs_report(date_str, region_key, api_key_ca)
+                        save_ca_to_db(cache_key, ca_content)
                         st.success("Generated and permanently cached to database! ✅")
                         st.markdown(ca_content)
                     except Exception as e:
