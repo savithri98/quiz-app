@@ -236,18 +236,22 @@ def generate_youtube_questions(youtube_url, difficulty, api_key):
     api = YouTubeTranscriptApi()
     try:
         transcript_list = api.list(vid_id)
-        transcript = transcript_list.find_transcript(['en'])
+        
+        # Try to find English or Common Indian languages first
+        try:
+            transcript = transcript_list.find_transcript(['en', 'hi', 'kn', 'ta', 'te', 'ml', 'mr', 'bn', 'gu'])
+        except Exception:
+            try:
+                transcript = transcript_list.find_generated_transcript(['en', 'hi', 'kn', 'ta', 'te', 'ml', 'mr', 'bn', 'gu'])
+            except Exception:
+                # Fallback: Just grab the absolute very first transcript available in ANY language!
+                transcript = next(iter(transcript_list))
+                
         transcript_data = transcript.fetch()
         transcript_text = " ".join([t['text'] for t in transcript_data])
+        
     except Exception as e:
-        # Fallback to fetching all generated transcripts if 'en' strictly fails
-        try:
-            transcript_list = api.list(vid_id)
-            transcript = transcript_list.find_generated_transcript(['en'])
-            transcript_data = transcript.fetch()
-            transcript_text = " ".join([t['text'] for t in transcript_data])
-        except Exception as fallback_e:
-            raise ValueError(f"Could not fetch transcript. Error: {e} | {fallback_e}")
+        raise ValueError(f"Could not fetch transcript from this video. Ensure it has captions enabled! Error details: {str(e)[:200]}")
     
     # Cap transcript length so we don't blow up token limits
     transcript = transcript_text[:15000] 
