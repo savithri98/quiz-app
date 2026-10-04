@@ -248,7 +248,10 @@ def generate_youtube_questions(youtube_url, difficulty, api_key):
                 transcript = next(iter(transcript_list))
                 
         transcript_data = transcript.fetch()
-        transcript_text = " ".join([t['text'] for t in transcript_data])
+        try:
+            transcript_text = " ".join([t['text'] for t in transcript_data])
+        except TypeError:
+            transcript_text = " ".join([t.text for t in transcript_data])
         
     except Exception as e:
         raise ValueError(f"Could not fetch transcript from this video. Ensure it has captions enabled! Error details: {str(e)[:200]}")
