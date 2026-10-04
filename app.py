@@ -1,4 +1,5 @@
 import streamlit as st
+import plotly.express as px
 import google.generativeai as genai
 import json
 import re
@@ -440,11 +441,40 @@ st.markdown("<p style='text-align: center; color: #a0a0a0; margin-bottom: 2rem;'
 # Navigation
 st.sidebar.title("Navigation")
 st.sidebar.markdown(f"👤 Logged in as: **{st.session_state.username}**")
-nav_choice = st.sidebar.radio("Go to", ["Take a Quiz", "History Dashboard", "Current Affairs 🇮🇳", "Study Plan 📚"], label_visibility="collapsed")
+nav_choice = st.sidebar.radio("Go to", ["Take a Quiz", "History Dashboard", "Current Affairs 🇮🇳", "Study Plan 📚", "Focus Chamber ⏱️"], label_visibility="collapsed")
 
 if st.sidebar.button("Logout"):
     st.session_state.clear()
     st.rerun()
+
+# --- Gamification: Streaks & XP ---
+try:
+    history_df_sb = get_history(st.session_state.username)
+    if not history_df_sb.empty:
+        total_score = pd.to_numeric(history_df_sb['score'], errors='coerce').sum()
+        total_quizzes = len(history_df_sb)
+    else:
+        total_score = 0
+        total_quizzes = 0
+except:
+    total_score = 0
+    total_quizzes = 0
+
+xp = int(total_score * 15 + total_quizzes * 50)
+level = int((xp / 500) ** 0.8) + 1
+next_level_xp = int((level ** 1.25) * 500)
+
+st.sidebar.markdown(f"""
+<div style="background: linear-gradient(135deg, #16213e, #0f3460); padding: 1rem; border-radius: 12px; margin-top: 2rem; border: 1px solid #1a1a2e; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+    <h3 style="color: #f7c948; margin:0 0 5px 0;">🔥 Level {level}</h3>
+    <p style="color: white; margin:0; font-size: 1.1rem; font-weight: bold;">{xp} <span style="color: #a0a0a0; font-size: 0.9rem; font-weight: normal;">XP</span></p>
+    <div style="width: 100%; background-color: #1a1a2e; border-radius: 5px; margin-top: 8px;">
+        <div style="width: {min((xp/next_level_xp)*100, 100)}%; height: 8px; background-color: #f7c948; border-radius: 5px;"></div>
+    </div>
+    <p style="color: #a0a0a0; margin: 4px 0 0 0; font-size: 0.75rem; text-align: right;">{next_level_xp} XP to next lvl</p>
+</div>
+""", unsafe_allow_html=True)
+
 
 if nav_choice == "History Dashboard":
     st.subheader(f"Performance History for {st.session_state.username}")
@@ -684,6 +714,63 @@ elif nav_choice == "Study Plan \U0001f4da":
         <p style="color: #f0f0f0; font-size: 0.9rem; margin: 0.3rem 0 0 0;">\U0001f4a1 Pro Tip: Generate 10 MCQs daily on today's topic using the Quiz tab!</p>
     </div>
     """, unsafe_allow_html=True)
+
+elif nav_choice == "Focus Chamber ⏱️":
+    st.markdown(f"""
+    <div style="background: linear-gradient(135deg, #FF6B35, #F7C948, #FF6B35); padding: 2rem; border-radius: 20px; text-align: center; margin-bottom: 2rem; animation: pulse 2s infinite;">
+        <h1 style="color: #1a1a2e; margin: 0; font-size: 2.5rem;">⏱️ FOCUS CHAMBER</h1>
+        <p style="color: #1a1a2e; font-size: 1.3rem; margin: 0.5rem 0;">25 Minutes of Unbroken Concentration</p>
+    </div>
+    <style>
+        @keyframes pulse {{
+            0% {{ transform: scale(1); }}
+            50% {{ transform: scale(1.01); }}
+            100% {{ transform: scale(1); }}
+        }}
+    </style>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("### Prepare your study environment. Lock in.")
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        import time
+        
+        if "focus_timer_active" not in st.session_state:
+            st.session_state.focus_timer_active = False
+            
+        if not st.session_state.focus_timer_active:
+            if st.button("🔴 ENTER DEEP FOCUS (Start 25m)", use_container_width=True):
+                st.session_state.focus_timer_active = True
+                st.rerun()
+        else:
+            if st.button("⏹️ ABORT MISSION", use_container_width=True):
+                st.session_state.focus_timer_active = False
+                st.rerun()
+                
+            ph = st.empty()
+            
+            # Simple JS timer instead of blocking python sleep for better UX in Streamlit
+            st.components.v1.html("""
+            <div style="text-align: center; color: white; font-family: 'Courier New', monospace; font-size: 6rem; font-weight: bold; background: #1a1a2e; padding: 2rem; border-radius: 20px; border: 2px solid #e94560; box-shadow: 0 0 20px rgba(233, 69, 96, 0.5);">
+                <span id="timer">25:00</span>
+            </div>
+            <script>
+                var time_in_sec = 25 * 60;
+                var x = setInterval(function() {
+                    time_in_sec--;
+                    var minutes = Math.floor(time_in_sec / 60);
+                    var seconds = time_in_sec % 60;
+                    if(seconds < 10) { seconds = "0" + seconds; }
+                    document.getElementById("timer").innerHTML = minutes + ":" + seconds;
+                    if (time_in_sec < 0) {
+                        clearInterval(x);
+                        document.getElementById("timer").innerHTML = "DONE!";
+                        document.getElementById("timer").style.color = "#4CAF50";
+                    }
+                }, 1000);
+            </script>
+            """, height=200)
 
 else:
     # --- View Routing ---
