@@ -583,137 +583,227 @@ elif nav_choice == "Current Affairs 🇮🇳":
                         st.error(f"Generation failed: {str(e)}")
 
 elif nav_choice == "Study Plan \U0001f4da":
-    # --- Motivational Header ---
-    from datetime import date as dt_date
-    today = dt_date.today()
-    exam_target = dt_date(2026, 11, 15)  # Estimated exam window
-    days_left = (exam_target - today).days
-    if days_left < 0:
-        days_left = 0
-    
-    st.markdown(f"""
-    <div style="background: linear-gradient(135deg, #FF6B35, #F7C948, #FF6B35); padding: 2rem; border-radius: 20px; text-align: center; margin-bottom: 2rem; animation: pulse 2s infinite;">
-        <h1 style="color: #1a1a2e; margin: 0; font-size: 2.5rem;">\U0001f525 KRIES EXAM WARRIOR \U0001f525</h1>
-        <p style="color: #1a1a2e; font-size: 1.3rem; margin: 0.5rem 0;">Computer Science Teacher | Your Dream Job Awaits!</p>
-        <div style="display: flex; justify-content: center; gap: 2rem; margin-top: 1rem;">
-            <div style="background: rgba(0,0,0,0.2); padding: 1rem 2rem; border-radius: 15px;">
-                <h2 style="color: white; margin: 0; font-size: 3rem;">{days_left}</h2>
-                <p style="color: #f0f0f0; margin: 0; font-size: 1rem;">DAYS LEFT</p>
-            </div>
-        </div>
-        <p style="color: #1a1a2e; font-size: 1rem; margin-top: 1rem; font-style: italic;">\"Every expert was once a beginner. START NOW.\"</p>
-    </div>
-    <style>
-        @keyframes pulse {{
-            0% {{ transform: scale(1); }}
-            50% {{ transform: scale(1.01); }}
-            100% {{ transform: scale(1); }}
-        }}
-    </style>
-    """, unsafe_allow_html=True)
-    
-    # --- Today's Focus ---
-    day_of_week = today.weekday()  # 0=Mon ... 6=Sun
-    import math
-    week_num = min(math.ceil((today - dt_date(2026, 10, 5)).days / 7), 4)
-    if week_num < 1:
-        week_num = 1
-    
-    st.markdown(f"""
-    <div style="background: linear-gradient(135deg, #0f3460, #16213e); border: 2px solid #e94560; padding: 1.5rem; border-radius: 15px; margin-bottom: 1.5rem;">
-        <h3 style="color: #e94560; margin: 0;">\U0001f3af TODAY'S MISSION — {today.strftime('%A, %B %d')}</h3>
-        <p style="color: #a0a0a0; margin: 0.3rem 0;">Week {week_num} of your preparation journey</p>
-    </div>
-    """, unsafe_allow_html=True)
+    # --- Tab switch between KRIES and KSET ---
+    sp_tab1, sp_tab2 = st.tabs(["🔥 KRIES — Computer Science Teacher", "🎓 KSET — Assistant Professor"])
 
-    # --- Weekly Schedule ---
-    st.markdown("### \U0001f4c5 Week 1: C Programming + Indian Constitution (Oct 5–11)")
-    week1_data = [
-        ["Sun 5", "C Basics: History, structure, character sets, keywords", "Indian Constitution: Preamble, Fundamental Rights"],
-        ["Mon 6", "Variables, Data Types, Constants, Operators", "Directive Principles, Fundamental Duties"],
-        ["Tue 7", "Control Instructions (if-else, switch, loops)", "Indian Polity: Parliament, President, PM"],
-        ["Wed 8", "Functions, Recursion, Scope of Variables", "Karnataka History: Chalukyas to Vijayanagara"],
-        ["Thu 9", "Arrays (1D, 2D), Strings in C", "Karnataka Geography: Rivers, Districts, Dams"],
-        ["Fri 10", "Pointers, Dynamic Memory Allocation", "Current Affairs (use your app!)"],
-        ["Sat 11", "\U0001f4dd REVISION + MOCK TEST", "\U0001f4dd REVISION + MOCK TEST"]
-    ]
-    st.dataframe(pd.DataFrame(week1_data, columns=["Day", "\U0001f4bb Paper II (CS)", "\U0001f4d6 Paper I (GK)"]), use_container_width=True, hide_index=True)
-    
-    st.markdown("### \U0001f4c5 Week 2: Data Structures + Indian History (Oct 12–18)")
-    week2_data = [
-        ["Sun 12", "Structures, Unions, typedef in C", "Indian History: Ancient India"],
-        ["Mon 13", "File Handling in C", "Medieval India, Mughal Empire"],
-        ["Tue 14", "Computer Fundamentals: CPU, Memory, I/O", "Indian Freedom Movement"],
-        ["Wed 15", "Number Systems: Binary, Octal, Hex", "Indian Geography: Physical features, Climate"],
-        ["Thu 16", "Boolean Algebra, Logic Gates", "Indian Economy: Five Year Plans, NITI Aayog"],
-        ["Fri 17", "Operating Systems Basics", "Karnataka: State schemes, Budget"],
-        ["Sat 18", "\U0001f4dd REVISION + MOCK TEST", "\U0001f4dd REVISION + MOCK TEST"]
-    ]
-    st.dataframe(pd.DataFrame(week2_data, columns=["Day", "\U0001f4bb Paper II (CS)", "\U0001f4d6 Paper I (GK)"]), use_container_width=True, hide_index=True)
-    
-    st.markdown("### \U0001f4c5 Week 3: Networking + Science & Environment (Oct 19–25)")
-    week3_data = [
-        ["Sun 19", "Computer Networks: LAN, WAN, TCP/IP", "General Science: Physics basics"],
-        ["Mon 20", "Internet, Protocols (HTTP, FTP, SMTP)", "Chemistry: Elements, Compounds, Reactions"],
-        ["Tue 21", "Database Basics: DBMS, SQL queries", "Biology: Human body, Diseases, Nutrition"],
-        ["Wed 22", "HTML, Web Technologies basics", "Environmental Science & Ecology"],
-        ["Thu 23", "Cyber Security, Viruses, Firewalls", "Space & Technology: ISRO missions"],
-        ["Fri 24", "MS Office (Word, Excel, PowerPoint)", "Current Affairs (use your app!)"],
-        ["Sat 25", "\U0001f4dd FULL MOCK TEST (100 CS Qs)", "\U0001f4dd FULL MOCK TEST (100 GK Qs)"]
-    ]
-    st.dataframe(pd.DataFrame(week3_data, columns=["Day", "\U0001f4bb Paper II (CS)", "\U0001f4d6 Paper I (GK)"]), use_container_width=True, hide_index=True)
-    
-    st.markdown("### \U0001f4c5 Week 4: Final Revision Sprint (Oct 26 – Nov 1)")
-    week4_data = [
-        ["Sun 26", "Revise all C Programming concepts", "—"],
-        ["Mon 27", "Revise Computer Fundamentals + Networks", "—"],
-        ["Tue 28", "—", "Revise Indian Constitution + Karnataka History"],
-        ["Wed 29", "—", "Revise Indian Geography + Economy"],
-        ["Thu 30", "Current Affairs marathon (Aug–Oct)", "Current Affairs marathon (Aug–Oct)"],
-        ["Fri 31", "\U0001f525 FULL-LENGTH MOCK TEST (Both Papers)", "\U0001f525 FULL-LENGTH MOCK TEST (Both Papers)"],
-        ["Sat 1", "Light revision, rest, confidence!", "Light revision, rest, confidence!"]
-    ]
-    st.dataframe(pd.DataFrame(week4_data, columns=["Day", "\U0001f4bb Paper II (CS)", "\U0001f4d6 Paper I (GK)"]), use_container_width=True, hide_index=True)
-    
-    # --- Exam Pattern Quick Reference ---
-    st.markdown("""
-    <div style="background: linear-gradient(135deg, #0f3460, #16213e); border-left: 5px solid #e94560; padding: 1.5rem; border-radius: 10px; margin-top: 1.5rem;">
-        <h3 style="color: #e94560; margin: 0 0 0.5rem 0;">\U0001f3af KRIES Exam Pattern (Quick Reference)</h3>
-        <table style="width: 100%; color: #e0e0e0; border-collapse: collapse;">
-            <tr style="border-bottom: 1px solid #333;">
-                <th style="padding: 8px; text-align: left;">Paper</th>
-                <th style="padding: 8px; text-align: left;">Subject</th>
-                <th style="padding: 8px;">Questions</th>
-                <th style="padding: 8px;">Marks</th>
-                <th style="padding: 8px;">Time</th>
-            </tr>
-            <tr style="border-bottom: 1px solid #333;">
-                <td style="padding: 8px;">Paper I</td>
-                <td style="padding: 8px;">General Studies / GK</td>
-                <td style="padding: 8px; text-align: center;">100</td>
-                <td style="padding: 8px; text-align: center;">100</td>
-                <td style="padding: 8px; text-align: center;">2 Hrs</td>
-            </tr>
-            <tr>
-                <td style="padding: 8px;">Paper II</td>
-                <td style="padding: 8px;">Computer Science</td>
-                <td style="padding: 8px; text-align: center;">100</td>
-                <td style="padding: 8px; text-align: center;">100</td>
-                <td style="padding: 8px; text-align: center;">2 Hrs</td>
-            </tr>
-        </table>
-        <p style="color: #e94560; margin: 0.8rem 0 0 0; font-weight: bold;">\u26a0\ufe0f Negative Marking: -0.25 per wrong answer</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # --- Motivational Footer ---
-    st.markdown(f"""
-    <div style="background: linear-gradient(135deg, #e94560, #FF6B35); padding: 1.5rem; border-radius: 15px; text-align: center; margin-top: 2rem;">
-        <h2 style="color: white; margin: 0;">\U0001f4aa YOU'VE GOT THIS!</h2>
-        <p style="color: #f0f0f0; font-size: 1.1rem; margin: 0.5rem 0 0 0;">\"C Programming is KING\" — master it, and 50% of Paper II is yours!</p>
-        <p style="color: #f0f0f0; font-size: 0.9rem; margin: 0.3rem 0 0 0;">\U0001f4a1 Pro Tip: Generate 10 MCQs daily on today's topic using the Quiz tab!</p>
-    </div>
-    """, unsafe_allow_html=True)
+    with sp_tab1:
+        # --- Motivational Header ---
+        from datetime import date as dt_date
+        today = dt_date.today()
+        exam_target = dt_date(2026, 11, 15)
+        days_left = (exam_target - today).days
+        if days_left < 0:
+            days_left = 0
+
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #FF6B35, #F7C948, #FF6B35); padding: 2rem; border-radius: 20px; text-align: center; margin-bottom: 2rem; animation: pulse 2s infinite;">
+            <h1 style="color: #1a1a2e; margin: 0; font-size: 2.5rem;">🔥 KRIES EXAM WARRIOR 🔥</h1>
+            <p style="color: #1a1a2e; font-size: 1.3rem; margin: 0.5rem 0;">Computer Science Teacher | Your Dream Job Awaits!</p>
+            <div style="display: flex; justify-content: center; gap: 2rem; margin-top: 1rem;">
+                <div style="background: rgba(0,0,0,0.2); padding: 1rem 2rem; border-radius: 15px;">
+                    <h2 style="color: white; margin: 0; font-size: 3rem;">{days_left}</h2>
+                    <p style="color: #f0f0f0; margin: 0; font-size: 1rem;">DAYS LEFT</p>
+                </div>
+            </div>
+            <p style="color: #1a1a2e; font-size: 1rem; margin-top: 1rem; font-style: italic;">"Every expert was once a beginner. START NOW."</p>
+        </div>
+        <style>
+            @keyframes pulse {{
+                0% {{ transform: scale(1); }}
+                50% {{ transform: scale(1.01); }}
+                100% {{ transform: scale(1); }}
+            }}
+        </style>
+        """, unsafe_allow_html=True)
+
+        import math
+        week_num = min(math.ceil((today - dt_date(2026, 10, 5)).days / 7), 4)
+        if week_num < 1:
+            week_num = 1
+
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #0f3460, #16213e); border: 2px solid #e94560; padding: 1.5rem; border-radius: 15px; margin-bottom: 1.5rem;">
+            <h3 style="color: #e94560; margin: 0;">🎯 TODAY\'S MISSION — {today.strftime('%A, %B %d')}</h3>
+            <p style="color: #a0a0a0; margin: 0.3rem 0;">Week {week_num} of your preparation journey</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("### 📅 Week 1: C Programming + Indian Constitution (Oct 5–11)")
+        w1 = [
+            ["Sun 5", "C Basics: History, structure, keywords", "Indian Constitution: Preamble, Fundamental Rights"],
+            ["Mon 6", "Variables, Data Types, Constants, Operators", "Directive Principles, Fundamental Duties"],
+            ["Tue 7", "Control Instructions (if-else, switch, loops)", "Indian Polity: Parliament, President, PM"],
+            ["Wed 8", "Functions, Recursion, Scope", "Karnataka History: Chalukyas to Vijayanagara"],
+            ["Thu 9", "Arrays (1D, 2D), Strings in C", "Karnataka Geography: Rivers, Districts, Dams"],
+            ["Fri 10", "Pointers, Dynamic Memory Allocation", "Current Affairs (use your app!)"],
+            ["Sat 11", "📝 REVISION + MOCK TEST", "📝 REVISION + MOCK TEST"]
+        ]
+        st.dataframe(pd.DataFrame(w1, columns=["Day", "💻 Paper II (CS)", "📖 Paper I (GK)"]), use_container_width=True, hide_index=True)
+
+        st.markdown("### 📅 Week 2: Data Structures + Indian History (Oct 12–18)")
+        w2 = [
+            ["Sun 12", "Structures, Unions, typedef in C", "Indian History: Ancient India"],
+            ["Mon 13", "File Handling in C", "Medieval India, Mughal Empire"],
+            ["Tue 14", "Computer Fundamentals: CPU, Memory, I/O", "Indian Freedom Movement"],
+            ["Wed 15", "Number Systems: Binary, Octal, Hex", "Indian Geography: Physical features, Climate"],
+            ["Thu 16", "Boolean Algebra, Logic Gates", "Indian Economy: Five Year Plans, NITI Aayog"],
+            ["Fri 17", "Operating Systems Basics", "Karnataka: State schemes, Budget"],
+            ["Sat 18", "📝 REVISION + MOCK TEST", "📝 REVISION + MOCK TEST"]
+        ]
+        st.dataframe(pd.DataFrame(w2, columns=["Day", "💻 Paper II (CS)", "📖 Paper I (GK)"]), use_container_width=True, hide_index=True)
+
+        st.markdown("### 📅 Week 3: Networking + Science & Environment (Oct 19–25)")
+        w3 = [
+            ["Sun 19", "Computer Networks: LAN, WAN, TCP/IP", "General Science: Physics basics"],
+            ["Mon 20", "Internet, Protocols (HTTP, FTP, SMTP)", "Chemistry: Elements, Compounds, Reactions"],
+            ["Tue 21", "Database Basics: DBMS, SQL queries", "Biology: Human body, Diseases, Nutrition"],
+            ["Wed 22", "HTML, Web Technologies basics", "Environmental Science & Ecology"],
+            ["Thu 23", "Cyber Security, Viruses, Firewalls", "Space & Technology: ISRO missions"],
+            ["Fri 24", "MS Office (Word, Excel, PowerPoint)", "Current Affairs (use your app!)"],
+            ["Sat 25", "📝 FULL MOCK TEST (100 CS Qs)", "📝 FULL MOCK TEST (100 GK Qs)"]
+        ]
+        st.dataframe(pd.DataFrame(w3, columns=["Day", "💻 Paper II (CS)", "📖 Paper I (GK)"]), use_container_width=True, hide_index=True)
+
+        st.markdown("### 📅 Week 4: Final Revision Sprint (Oct 26 – Nov 1)")
+        w4 = [
+            ["Sun 26", "Revise all C Programming", "—"],
+            ["Mon 27", "Revise Computer Fundamentals + Networks", "—"],
+            ["Tue 28", "—", "Revise Indian Constitution + Karnataka History"],
+            ["Wed 29", "—", "Revise Indian Geography + Economy"],
+            ["Thu 30", "Current Affairs marathon (Aug–Oct)", "Current Affairs marathon (Aug–Oct)"],
+            ["Fri 31", "🔥 FULL-LENGTH MOCK TEST", "🔥 FULL-LENGTH MOCK TEST"],
+            ["Sat 1", "Light revision, rest, confidence!", "Light revision, rest, confidence!"]
+        ]
+        st.dataframe(pd.DataFrame(w4, columns=["Day", "💻 Paper II (CS)", "📖 Paper I (GK)"]), use_container_width=True, hide_index=True)
+
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #0f3460, #16213e); border-left: 5px solid #e94560; padding: 1.5rem; border-radius: 10px; margin-top: 1.5rem;">
+            <h3 style="color: #e94560; margin: 0 0 0.5rem 0;">🎯 KRIES Exam Pattern</h3>
+            <table style="width: 100%; color: #e0e0e0; border-collapse: collapse;">
+                <tr style="border-bottom: 1px solid #333;"><th style="padding: 8px; text-align: left;">Paper</th><th style="padding: 8px; text-align: left;">Subject</th><th style="padding: 8px;">Qs</th><th style="padding: 8px;">Marks</th><th style="padding: 8px;">Time</th></tr>
+                <tr style="border-bottom: 1px solid #333;"><td style="padding: 8px;">Paper I</td><td style="padding: 8px;">General Studies / GK</td><td style="padding: 8px; text-align: center;">100</td><td style="padding: 8px; text-align: center;">100</td><td style="padding: 8px; text-align: center;">2 Hrs</td></tr>
+                <tr><td style="padding: 8px;">Paper II</td><td style="padding: 8px;">Computer Science</td><td style="padding: 8px; text-align: center;">100</td><td style="padding: 8px; text-align: center;">100</td><td style="padding: 8px; text-align: center;">2 Hrs</td></tr>
+            </table>
+            <p style="color: #e94560; margin: 0.8rem 0 0 0; font-weight: bold;">⚠️ Negative Marking: -0.25 per wrong answer</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #e94560, #FF6B35); padding: 1.5rem; border-radius: 15px; text-align: center; margin-top: 2rem;">
+            <h2 style="color: white; margin: 0;">💪 YOU'VE GOT THIS!</h2>
+            <p style="color: #f0f0f0; font-size: 1.1rem; margin: 0.5rem 0 0 0;">"C Programming is KING" — master it, and 50% of Paper II is yours!</p>
+            <p style="color: #f0f0f0; font-size: 0.9rem; margin: 0.3rem 0 0 0;">💡 Pro Tip: Generate 10 MCQs daily on today's topic!</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with sp_tab2:
+        # --- KSET Study Plan ---
+        from datetime import date as dt_date2
+        today2 = dt_date2.today()
+
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460); padding: 2rem; border-radius: 20px; text-align: center; margin-bottom: 2rem; border: 2px solid #6c63ff;">
+            <h1 style="color: #f7c948; margin: 0; font-size: 2.5rem;">🎓 KSET WARRIOR 🎓</h1>
+            <p style="color: #c0c0f0; font-size: 1.3rem; margin: 0.5rem 0;">Computer Science & Applications | Assistant Professor</p>
+            <div style="background: rgba(108,99,255,0.2); padding: 0.8rem 1.5rem; border-radius: 12px; display: inline-block; margin-top: 1rem;">
+                <p style="color: #f7c948; margin: 0; font-size: 1.1rem; font-weight: bold;">100 Questions | 200 Marks | No Negative Marking ✅</p>
+            </div>
+            <p style="color: #a0a0e0; font-size: 1rem; margin-top: 1rem; font-style: italic;">"The higher the level, the greater the reward. REACH FOR IT."</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #0f3460, #16213e); border: 2px solid #6c63ff; padding: 1.2rem; border-radius: 12px; margin-bottom: 1.5rem;">
+            <p style="color: #c0c0f0; margin: 0; font-size: 1rem;">
+            🧠 KSET Paper 2 is fully aligned with the <b style="color:#f7c948">UGC NET Computer Science syllabus</b>.
+            It tests you on advanced CS concepts — far beyond KRIES level.
+            The good news: <b style="color:#6c63ff">no negative marking!</b> So attempt every question.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("### 📅 Week 1: Foundations & Logic (Oct 6–12)")
+        kw1 = [
+            ["Mon 6",  "Discrete Math: Set Theory, Relations, Functions, Logic", "Graph Theory: Coloring, Trees, Spanning Trees"],
+            ["Tue 7",  "Counting & Combinatorics, Pigeonhole Principle", "Group Theory, Lattices, Boolean Algebra"],
+            ["Wed 8",  "Digital Logic: Gates, K-Maps, Combinational Circuits", "Sequential Circuits: Flip-flops, Counters, Registers"],
+            ["Thu 9",  "Computer Org: Data representation, Registers, ALU", "Instruction Cycle, Addressing Modes, Pipelining"],
+            ["Fri 10", "Memory Hierarchy: Cache, RAM, Virtual Memory", "I/O Organization, DMA, Interrupts"],
+            ["Sat 11", "📝 REVISION — Discrete Math", "📝 REVISION — Digital Logic & Arch"],
+            ["Sun 12", "🔥 MOCK TEST: Foundations", "🔥 MOCK TEST: Foundations"]
+        ]
+        st.dataframe(pd.DataFrame(kw1, columns=["Day", "💻 CS Topic A", "💻 CS Topic B"]), use_container_width=True, hide_index=True)
+
+        st.markdown("### 📅 Week 2: Core Engineering (Oct 13–19)")
+        kw2 = [
+            ["Mon 13", "Data Structures: Arrays, Linked Lists, Stacks, Queues", "Trees: BST, AVL, Red-Black, B-Trees, Heaps"],
+            ["Tue 14", "Hashing, Graph Algorithms: BFS, DFS, Dijkstra, Floyd", "Sorting & Searching: Merge Sort, Quick Sort, Bin. Search"],
+            ["Wed 15", "Algorithm Design: Greedy, D&C, Backtracking", "Dynamic Programming, NP-Completeness, Complexity"],
+            ["Thu 16", "Theory of Computation: FA, NFA, Regular Expressions", "Context-Free Grammar, PDAs, Pushdown Automata"],
+            ["Fri 17", "Turing Machines, Decidability, Halting Problem", "Compiler Design: Lexical Analysis, Parsing Techniques"],
+            ["Sat 18", "📝 REVISION — Data Structures & Algorithms", "📝 REVISION — TOC & Compilers"],
+            ["Sun 19", "🔥 MOCK TEST: Core Engineering", "🔥 MOCK TEST: Core Engineering"]
+        ]
+        st.dataframe(pd.DataFrame(kw2, columns=["Day", "💻 CS Topic A", "💻 CS Topic B"]), use_container_width=True, hide_index=True)
+
+        st.markdown("### 📅 Week 3: Systems & Networks (Oct 20–26)")
+        kw3 = [
+            ["Mon 20", "OS: Process Management, Scheduling Algorithms", "Deadlocks, Synchronization, Semaphores"],
+            ["Tue 21", "Memory Management: Paging, Segmentation, TLB", "File Systems, I/O Management"],
+            ["Wed 22", "Computer Networks: OSI & TCP/IP Models, IP Addressing", "Routing Protocols: RIP, OSPF, BGP"],
+            ["Thu 23", "Transport Layer: TCP vs UDP, Congestion Control", "Application Layer: HTTP, DNS, FTP, SMTP, HTTPS"],
+            ["Fri 24", "Network Security: Cryptography, Firewalls, VPNs", "Wireless: WiFi, Bluetooth, 4G/5G Architecture"],
+            ["Sat 25", "📝 REVISION — Operating Systems", "📝 REVISION — Networks & Security"],
+            ["Sun 26", "🔥 MOCK TEST: Systems & Networks", "🔥 MOCK TEST: Systems & Networks"]
+        ]
+        st.dataframe(pd.DataFrame(kw3, columns=["Day", "💻 CS Topic A", "💻 CS Topic B"]), use_container_width=True, hide_index=True)
+
+        st.markdown("### 📅 Week 4: Advanced Tech & Full Revision (Oct 27 – Nov 2)")
+        kw4 = [
+            ["Mon 27", "DBMS: Relational Model, SQL, Relational Algebra", "Normalization: 1NF to BCNF, Functional Dependencies"],
+            ["Tue 28", "Transaction Processing, ACID, Concurrency Control", "Distributed Databases, NoSQL Basics"],
+            ["Wed 29", "Software Engineering: SDLC, Agile, Waterfall", "Testing: Unit, Integration, Black/White Box, UML"],
+            ["Thu 30", "Artificial Intelligence: Search algorithms (A*, BFS)", "Machine Learning basics, ANN, Expert Systems"],
+            ["Fri 31", "OOP: Java/C++ Concepts, Inheritance, Polymorphism", "Web Tech: HTML, XML, HTTP Architecture"],
+            ["Sat 1",  "🔥 FULL MOCK TEST — All Topics", "🔥 FULL MOCK TEST — All Topics"],
+            ["Sun 2",  "🧘 Light Revision + Rest", "🧘 Confidence Building"]
+        ]
+        st.dataframe(pd.DataFrame(kw4, columns=["Day", "💻 CS Topic A", "💻 CS Topic B"]), use_container_width=True, hide_index=True)
+
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #1a1a2e, #0f3460); border-left: 5px solid #6c63ff; padding: 1.5rem; border-radius: 10px; margin-top: 1.5rem;">
+            <h3 style="color: #f7c948; margin: 0 0 0.8rem 0;">🎯 KSET High-Weightage Topics</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; color: #c0c0f0;">
+                <div>
+                    <p style="color: #6c63ff; font-weight: bold; margin: 0 0 0.3rem;">Very High Weightage</p>
+                    <ul style="margin: 0; padding-left: 1.2rem;">
+                        <li>Data Structures & Algorithms</li>
+                        <li>DBMS & SQL</li>
+                        <li>Operating Systems</li>
+                        <li>Computer Networks</li>
+                    </ul>
+                </div>
+                <div>
+                    <p style="color: #6c63ff; font-weight: bold; margin: 0 0 0.3rem;">High Weightage</p>
+                    <ul style="margin: 0; padding-left: 1.2rem;">
+                        <li>Theory of Computation</li>
+                        <li>Discrete Mathematics</li>
+                        <li>Software Engineering</li>
+                        <li>Computer Organization</li>
+                    </ul>
+                </div>
+            </div>
+            <p style="color: #f7c948; margin: 1rem 0 0 0; font-weight: bold;">✅ NO NEGATIVE MARKING — Attempt every single question!</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #6c63ff, #1a1a2e); padding: 1.5rem; border-radius: 15px; text-align: center; margin-top: 2rem;">
+            <h2 style="color: white; margin: 0;">🎓 FUTURE PROFESSOR — OWN IT!</h2>
+            <p style="color: #f0f0f0; font-size: 1.1rem; margin: 0.5rem 0 0 0;">Master DSA + DBMS + OS + Networks = 60%+ of the paper solved!</p>
+            <p style="color: #f0f0f0; font-size: 0.9rem; margin: 0.3rem 0 0 0;">💡 Pro Tip: Use the Quiz tab and type topics like "DBMS Normalization KSET level" for hard questions!</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 elif nav_choice == "Focus Chamber ⏱️":
     st.markdown(f"""
