@@ -697,111 +697,130 @@ elif nav_choice == "Study Plan \U0001f4da":
         """, unsafe_allow_html=True)
 
     with sp_tab2:
-        # --- KSET Study Plan ---
-        from datetime import date as dt_date2
-        today2 = dt_date2.today()
+        # --- KSET 6-Day Crash Plan ---
+        from datetime import date as dt_kset
+        today_k = dt_kset.today()
+        kset_exam = dt_kset(2026, 10, 11)
+        kset_days_left = (kset_exam - today_k).days
+        if kset_days_left < 0:
+            kset_days_left = 0
 
+        # Emergency Banner
         st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460); padding: 2rem; border-radius: 20px; text-align: center; margin-bottom: 2rem; border: 2px solid #6c63ff;">
-            <h1 style="color: #f7c948; margin: 0; font-size: 2.5rem;">🎓 KSET WARRIOR 🎓</h1>
-            <p style="color: #c0c0f0; font-size: 1.3rem; margin: 0.5rem 0;">Computer Science & Applications | Assistant Professor</p>
-            <div style="background: rgba(108,99,255,0.2); padding: 0.8rem 1.5rem; border-radius: 12px; display: inline-block; margin-top: 1rem;">
-                <p style="color: #f7c948; margin: 0; font-size: 1.1rem; font-weight: bold;">100 Questions | 200 Marks | No Negative Marking ✅</p>
+        <div style="background: linear-gradient(135deg, #e94560, #b01030, #e94560); padding: 2rem; border-radius: 20px;
+                    text-align: center; margin-bottom: 1.5rem; animation: pulse 1.5s infinite; border: 3px solid #ff0040;">
+            <h1 style="color: white; margin: 0; font-size: 2.2rem;">🚨 KSET EMERGENCY MODE 🚨</h1>
+            <p style="color: #ffe0e0; font-size: 1.2rem; margin: 0.5rem 0;">Computer Science & Applications | Oct 11, 2026</p>
+            <div style="display: flex; justify-content: center; gap: 2rem; margin-top: 1rem;">
+                <div style="background: rgba(0,0,0,0.35); padding: 1rem 2.5rem; border-radius: 15px;">
+                    <h2 style="color: #ff6b6b; margin: 0; font-size: 4rem; font-weight: 900;">{kset_days_left}</h2>
+                    <p style="color: #f0f0f0; margin: 0; font-size: 1rem; letter-spacing: 2px;">DAYS LEFT</p>
+                </div>
             </div>
-            <p style="color: #a0a0e0; font-size: 1rem; margin-top: 1rem; font-style: italic;">"The higher the level, the greater the reward. REACH FOR IT."</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("""
-        <div style="background: linear-gradient(135deg, #0f3460, #16213e); border: 2px solid #6c63ff; padding: 1.2rem; border-radius: 12px; margin-bottom: 1.5rem;">
-            <p style="color: #c0c0f0; margin: 0; font-size: 1rem;">
-            🧠 KSET Paper 2 is fully aligned with the <b style="color:#f7c948">UGC NET Computer Science syllabus</b>.
-            It tests you on advanced CS concepts — far beyond KRIES level.
-            The good news: <b style="color:#6c63ff">no negative marking!</b> So attempt every question.
+            <p style="color: #ffe0e0; font-size: 1rem; margin-top: 1rem; font-style: italic;">
+                "You don't RISE to the level of goals. You FALL to the level of preparation. PREPARE NOW."
             </p>
         </div>
+        <style>
+            @keyframes pulse {{
+                0% {{ transform: scale(1); box-shadow: 0 0 0 0 rgba(233,69,96,0.6); }}
+                50% {{ transform: scale(1.01); box-shadow: 0 0 20px 8px rgba(233,69,96,0.3); }}
+                100% {{ transform: scale(1); box-shadow: 0 0 0 0 rgba(233,69,96,0.6); }}
+            }}
+        </style>
         """, unsafe_allow_html=True)
 
-        st.markdown("### 📅 Week 1: Foundations & Logic (Oct 6–12)")
-        kw1 = [
-            ["Mon 6",  "Discrete Math: Set Theory, Relations, Functions, Logic", "Graph Theory: Coloring, Trees, Spanning Trees"],
-            ["Tue 7",  "Counting & Combinatorics, Pigeonhole Principle", "Group Theory, Lattices, Boolean Algebra"],
-            ["Wed 8",  "Digital Logic: Gates, K-Maps, Combinational Circuits", "Sequential Circuits: Flip-flops, Counters, Registers"],
-            ["Thu 9",  "Computer Org: Data representation, Registers, ALU", "Instruction Cycle, Addressing Modes, Pipelining"],
-            ["Fri 10", "Memory Hierarchy: Cache, RAM, Virtual Memory", "I/O Organization, DMA, Interrupts"],
-            ["Sat 11", "📝 REVISION — Discrete Math", "📝 REVISION — Digital Logic & Arch"],
-            ["Sun 12", "🔥 MOCK TEST: Foundations", "🔥 MOCK TEST: Foundations"]
-        ]
-        st.dataframe(pd.DataFrame(kw1, columns=["Day", "💻 CS Topic A", "💻 CS Topic B"]), use_container_width=True, hide_index=True)
-
-        st.markdown("### 📅 Week 2: Core Engineering (Oct 13–19)")
-        kw2 = [
-            ["Mon 13", "Data Structures: Arrays, Linked Lists, Stacks, Queues", "Trees: BST, AVL, Red-Black, B-Trees, Heaps"],
-            ["Tue 14", "Hashing, Graph Algorithms: BFS, DFS, Dijkstra, Floyd", "Sorting & Searching: Merge Sort, Quick Sort, Bin. Search"],
-            ["Wed 15", "Algorithm Design: Greedy, D&C, Backtracking", "Dynamic Programming, NP-Completeness, Complexity"],
-            ["Thu 16", "Theory of Computation: FA, NFA, Regular Expressions", "Context-Free Grammar, PDAs, Pushdown Automata"],
-            ["Fri 17", "Turing Machines, Decidability, Halting Problem", "Compiler Design: Lexical Analysis, Parsing Techniques"],
-            ["Sat 18", "📝 REVISION — Data Structures & Algorithms", "📝 REVISION — TOC & Compilers"],
-            ["Sun 19", "🔥 MOCK TEST: Core Engineering", "🔥 MOCK TEST: Core Engineering"]
-        ]
-        st.dataframe(pd.DataFrame(kw2, columns=["Day", "💻 CS Topic A", "💻 CS Topic B"]), use_container_width=True, hide_index=True)
-
-        st.markdown("### 📅 Week 3: Systems & Networks (Oct 20–26)")
-        kw3 = [
-            ["Mon 20", "OS: Process Management, Scheduling Algorithms", "Deadlocks, Synchronization, Semaphores"],
-            ["Tue 21", "Memory Management: Paging, Segmentation, TLB", "File Systems, I/O Management"],
-            ["Wed 22", "Computer Networks: OSI & TCP/IP Models, IP Addressing", "Routing Protocols: RIP, OSPF, BGP"],
-            ["Thu 23", "Transport Layer: TCP vs UDP, Congestion Control", "Application Layer: HTTP, DNS, FTP, SMTP, HTTPS"],
-            ["Fri 24", "Network Security: Cryptography, Firewalls, VPNs", "Wireless: WiFi, Bluetooth, 4G/5G Architecture"],
-            ["Sat 25", "📝 REVISION — Operating Systems", "📝 REVISION — Networks & Security"],
-            ["Sun 26", "🔥 MOCK TEST: Systems & Networks", "🔥 MOCK TEST: Systems & Networks"]
-        ]
-        st.dataframe(pd.DataFrame(kw3, columns=["Day", "💻 CS Topic A", "💻 CS Topic B"]), use_container_width=True, hide_index=True)
-
-        st.markdown("### 📅 Week 4: Advanced Tech & Full Revision (Oct 27 – Nov 2)")
-        kw4 = [
-            ["Mon 27", "DBMS: Relational Model, SQL, Relational Algebra", "Normalization: 1NF to BCNF, Functional Dependencies"],
-            ["Tue 28", "Transaction Processing, ACID, Concurrency Control", "Distributed Databases, NoSQL Basics"],
-            ["Wed 29", "Software Engineering: SDLC, Agile, Waterfall", "Testing: Unit, Integration, Black/White Box, UML"],
-            ["Thu 30", "Artificial Intelligence: Search algorithms (A*, BFS)", "Machine Learning basics, ANN, Expert Systems"],
-            ["Fri 31", "OOP: Java/C++ Concepts, Inheritance, Polymorphism", "Web Tech: HTML, XML, HTTP Architecture"],
-            ["Sat 1",  "🔥 FULL MOCK TEST — All Topics", "🔥 FULL MOCK TEST — All Topics"],
-            ["Sun 2",  "🧘 Light Revision + Rest", "🧘 Confidence Building"]
-        ]
-        st.dataframe(pd.DataFrame(kw4, columns=["Day", "💻 CS Topic A", "💻 CS Topic B"]), use_container_width=True, hide_index=True)
-
+        # Strategy card
         st.markdown("""
-        <div style="background: linear-gradient(135deg, #1a1a2e, #0f3460); border-left: 5px solid #6c63ff; padding: 1.5rem; border-radius: 10px; margin-top: 1.5rem;">
-            <h3 style="color: #f7c948; margin: 0 0 0.8rem 0;">🎯 KSET High-Weightage Topics</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; color: #c0c0f0;">
-                <div>
-                    <p style="color: #6c63ff; font-weight: bold; margin: 0 0 0.3rem;">Very High Weightage</p>
-                    <ul style="margin: 0; padding-left: 1.2rem;">
-                        <li>Data Structures & Algorithms</li>
-                        <li>DBMS & SQL</li>
-                        <li>Operating Systems</li>
-                        <li>Computer Networks</li>
-                    </ul>
-                </div>
-                <div>
-                    <p style="color: #6c63ff; font-weight: bold; margin: 0 0 0.3rem;">High Weightage</p>
-                    <ul style="margin: 0; padding-left: 1.2rem;">
-                        <li>Theory of Computation</li>
-                        <li>Discrete Mathematics</li>
-                        <li>Software Engineering</li>
-                        <li>Computer Organization</li>
-                    </ul>
-                </div>
-            </div>
-            <p style="color: #f7c948; margin: 1rem 0 0 0; font-weight: bold;">✅ NO NEGATIVE MARKING — Attempt every single question!</p>
+        <div style="background: linear-gradient(135deg,#1a1a2e,#0f3460); border-left:5px solid #f7c948; padding:1.2rem; border-radius:10px; margin-bottom:1.5rem;">
+            <h3 style="color:#f7c948; margin:0 0 0.5rem;">⚡ 6-DAY KSET CRASH STRATEGY</h3>
+            <ul style="color:#e0e0e0; margin:0; padding-left:1.2rem; line-height:1.9;">
+                <li><b style="color:#f7c948;">DSA + DBMS + OS + Networks = ~60% of the paper.</b> Master these first.</li>
+                <li>100 questions, 200 marks. <b style="color:#4caf50;">NO NEGATIVE MARKING</b> — attempt every question!</li>
+                <li>Use the <b>Quiz tab</b> daily: type topics like <i>"DBMS Normalization KSET level"</i> for hard MCQs.</li>
+                <li>Day 5 & 6: only revision + mock tests. Fresh studying on exam eve is a trap.</li>
+            </ul>
         </div>
         """, unsafe_allow_html=True)
 
+        # 6-day schedule
+        st.markdown("### 🔥 6-Day Crash Schedule (Oct 6–11)")
+        crash = [
+            ["Mon 6",  "💻 DSA: Arrays, Linked Lists, Stacks, Queues, Trees, Hashing",      "💻 Algorithms: Sorting, Searching, Greedy, DP complexity"],
+            ["Tue 7",  "💻 DBMS: Relational Model, SQL, Normalization (1NF–BCNF)",           "💻 TOC: FA, NFA, CFG, PDAs, Turing Machines"],
+            ["Wed 8",  "💻 OS: Scheduling, Deadlocks, Paging, Segmentation, File Systems",   "💻 Networks: OSI/TCP-IP, Routing, TCP/UDP, HTTP, DNS, Security"],
+            ["Thu 9",  "💻 Discrete Math: Logic, Set Theory, Graph Theory, Counting",         "💻 Software Engg + AI: SDLC, Testing, Search algorithms, ML basics"],
+            ["Fri 10", "🔥 RAPID REVISION — DSA + DBMS + OS",                               "🔥 RAPID REVISION — Networks + TOC + Discrete Math"],
+            ["Sat 11", "🏆 EXAM DAY! Attempt ALL 100 Qs. No penalty!",                      "🏆 Stay calm. Trust your 6 days!"],
+        ]
+        st.dataframe(
+            pd.DataFrame(crash, columns=["Day", "CS Focus A", "CS Focus B"]),
+            use_container_width=True, hide_index=True
+        )
+
+        # Priority cols
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("""
+            <div style="background:linear-gradient(135deg,#0f3460,#16213e); border-left:4px solid #e94560; padding:1rem; border-radius:10px;">
+                <h4 style="color:#e94560; margin:0 0 0.5rem;">🔥 Highest-Weightage Topics</h4>
+                <ul style="color:#e0e0e0; margin:0; padding-left:1.2rem; line-height:1.9;">
+                    <li>Data Structures & Algorithms</li>
+                    <li>DBMS & SQL Queries</li>
+                    <li>Operating Systems</li>
+                    <li>Computer Networks</li>
+                    <li>Theory of Computation</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+        with col2:
+            st.markdown("""
+            <div style="background:linear-gradient(135deg,#0f3460,#16213e); border-left:4px solid #f7c948; padding:1rem; border-radius:10px;">
+                <h4 style="color:#f7c948; margin:0 0 0.5rem;">💡 High-Weightage Topics</h4>
+                <ul style="color:#e0e0e0; margin:0; padding-left:1.2rem; line-height:1.9;">
+                    <li>Discrete Mathematics</li>
+                    <li>Software Engineering</li>
+                    <li>Computer Organization</li>
+                    <li>Compiler Design</li>
+                    <li>Artificial Intelligence</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Exam pattern
+        st.markdown("""
+        <div style="background:linear-gradient(135deg,#0f3460,#16213e); border-left:5px solid #6c63ff; padding:1.2rem; border-radius:10px; margin-top:1.5rem;">
+            <h3 style="color:#6c63ff; margin:0 0 0.5rem;">🎯 KSET Exam Pattern</h3>
+            <table style="width:100%; color:#e0e0e0; border-collapse:collapse;">
+                <tr style="border-bottom:1px solid #333;">
+                    <th style="padding:8px; text-align:left;">Paper</th>
+                    <th style="padding:8px; text-align:left;">Subject</th>
+                    <th style="padding:8px;">Qs</th>
+                    <th style="padding:8px;">Marks</th>
+                </tr>
+                <tr style="border-bottom:1px solid #333;">
+                    <td style="padding:8px;">Paper I</td>
+                    <td style="padding:8px;">General Aptitude (All subjects)</td>
+                    <td style="padding:8px; text-align:center;">50</td>
+                    <td style="padding:8px; text-align:center;">100</td>
+                </tr>
+                <tr>
+                    <td style="padding:8px;">Paper II</td>
+                    <td style="padding:8px;">Computer Science & Applications</td>
+                    <td style="padding:8px; text-align:center;">100</td>
+                    <td style="padding:8px; text-align:center;">200</td>
+                </tr>
+            </table>
+            <p style="color:#4caf50; margin:0.8rem 0 0; font-weight:bold;">✅ NO NEGATIVE MARKING — Attempt every single question!</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Motivational footer
         st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #6c63ff, #1a1a2e); padding: 1.5rem; border-radius: 15px; text-align: center; margin-top: 2rem;">
-            <h2 style="color: white; margin: 0;">🎓 FUTURE PROFESSOR — OWN IT!</h2>
-            <p style="color: #f0f0f0; font-size: 1.1rem; margin: 0.5rem 0 0 0;">Master DSA + DBMS + OS + Networks = 60%+ of the paper solved!</p>
-            <p style="color: #f0f0f0; font-size: 0.9rem; margin: 0.3rem 0 0 0;">💡 Pro Tip: Use the Quiz tab and type topics like "DBMS Normalization KSET level" for hard questions!</p>
+        <div style="background:linear-gradient(135deg,#6c63ff,#1a1a2e); padding:1.5rem; border-radius:15px; text-align:center; margin-top:2rem; border:2px solid #6c63ff;">
+            <h2 style="color:white; margin:0;">🎓 FUTURE PROFESSOR — GO CLAIM IT!</h2>
+            <p style="color:#f0f0f0; font-size:1.1rem; margin:0.5rem 0 0 0;">6 intense days beats 6 months of half-effort. LOCK IN.</p>
+            <p style="color:#c0c0f0; font-size:0.9rem; margin:0.4rem 0 0 0;">💡 Open the Quiz tab RIGHT NOW and generate DBMS MCQs. Go!</p>
         </div>
         """, unsafe_allow_html=True)
 
