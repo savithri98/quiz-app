@@ -213,7 +213,7 @@ def create_domain_report_pdf(domain, content, image_paths=None):
 
 # --- AI Generation Utility ---
 def generate_questions(domain, difficulty, api_key):
-    genai.configure(api_key=api_key)
+    genai.configure(api_key=api_key.strip() if api_key else api_key)
     model = genai.GenerativeModel('gemini-2.5-flash')
     
     diff_prompt = "a mix of Easy, Medium, and Hard" if difficulty == "Mixed" else f"strictly {difficulty}"
@@ -277,7 +277,7 @@ def generate_youtube_questions(youtube_url, difficulty, api_key):
     # Cap transcript length so we don't blow up token limits
     transcript = transcript_text[:15000] 
     
-    genai.configure(api_key=api_key)
+    genai.configure(api_key=api_key.strip() if api_key else api_key)
     model = genai.GenerativeModel('gemini-2.5-flash')
     
     diff_prompt = "a mix of Easy, Medium, and Hard" if difficulty == "Mixed" else f"strictly {difficulty}"
@@ -325,7 +325,7 @@ def fetch_domain_images(domain):
     return image_paths
 
 def generate_domain_report(domain, api_key):
-    genai.configure(api_key=api_key)
+    genai.configure(api_key=api_key.strip() if api_key else api_key)
     model = genai.GenerativeModel('gemini-2.5-flash')
     
     internet_context = ""
@@ -359,7 +359,7 @@ Summary:"""
     return response.text
 
 def generate_current_affairs_report(date_str, region, api_key):
-    genai.configure(api_key=api_key)
+    genai.configure(api_key=api_key.strip() if api_key else api_key)
     model = genai.GenerativeModel('gemini-2.5-flash')
     
     search_topic = "Karnataka State" if region == "Karnataka" else "India"
@@ -857,7 +857,7 @@ elif nav_choice == "Question Paper Solver 📄":
                         import tempfile
                         import os
                         
-                        genai.configure(api_key=api_key_solver)
+                        genai.configure(api_key=api_key_solver.strip() if api_key_solver else api_key_solver)
                         
                         # Save Streamlit UploadedFile to a temporary file on disk so Gemini can access it
                         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
