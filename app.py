@@ -441,7 +441,7 @@ st.markdown("<p style='text-align: center; color: #a0a0a0; margin-bottom: 2rem;'
 # Navigation
 st.sidebar.title("Navigation")
 st.sidebar.markdown(f"👤 Logged in as: **{st.session_state.username}**")
-nav_choice = st.sidebar.radio("Go to", ["Take a Quiz", "History Dashboard", "Current Affairs 🇮🇳", "Study Plan 📚", "Focus Chamber ⏱️"], label_visibility="collapsed")
+nav_choice = st.sidebar.radio("Go to", ["Take a Quiz", "History Dashboard", "Current Affairs 🇮🇳", "Study Plan 📚", "Question Paper Solver 📄", "Focus Chamber ⏱️"], label_visibility="collapsed")
 
 if st.sidebar.button("Logout"):
     st.session_state.clear()
@@ -823,6 +823,84 @@ elif nav_choice == "Study Plan \U0001f4da":
             <p style="color:#c0c0f0; font-size:0.9rem; margin:0.4rem 0 0 0;">💡 Open the Quiz tab RIGHT NOW and generate DBMS MCQs. Go!</p>
         </div>
         """, unsafe_allow_html=True)
+
+elif nav_choice == "Question Paper Solver 📄":
+    st.markdown(f"""
+    <div style="background: linear-gradient(135deg, #1aa37a, #0d5c46); padding: 2rem; border-radius: 20px; text-align: center; margin-bottom: 2rem; box-shadow: 0 4px 15px rgba(26, 163, 122, 0.4);">
+        <h1 style="color: white; margin: 0; font-size: 2.5rem;">📄 QUESTION PAPER SOLVER</h1>
+        <p style="color: #e0f2f1; font-size: 1.2rem; margin: 0.5rem 0;">Upload any past paper PDF. AI will answer & explain every question.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div style="background: #1a1a2e; padding: 1.5rem; border-radius: 10px; border-left: 5px solid #1aa37a; margin-bottom: 2rem;">
+        <h4 style="margin: 0 0 0.5rem 0; color: #1aa37a;">🧠 How it works:</h4>
+        <p style="color: #c0c0c0; margin: 0;">Upload a PDF of your KRIES/KSET question paper. Wait 10-30 seconds. Gemini 1.5 Pro Vision will read the entire document directly and output detailed, step-by-step answers with explanations for every single question it finds.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    uploaded_pdf = st.file_uploader("Upload Question Paper (PDF file)", type=["pdf"])
+    
+    if uploaded_pdf is not None:
+        st.success(f"File '{uploaded_pdf.name}' successfully uploaded.")
+        
+        col1, col2 = st.columns([1, 2])
+        subject_hint = col1.text_input("Subject/Topic Hint (Optional)", placeholder="e.g. Computer Science")
+        
+        if st.button("🚀 Analyze & Solve Paper", use_container_width=True, type="primary"):
+            if not st.session_state.gemini_api_key:
+                st.error("Please configure your Gemini API Key in the Setup tab first!")
+            else:
+                with st.spinner("Uploading PDF to Gemini's brain... Reading questions... Generating explanations... This may take up to 60 seconds..."):
+                    try:
+                        import tempfile
+                        import os
+                        
+                        genai.configure(api_key=st.session_state.gemini_api_key)
+                        
+                        # Save Streamlit UploadedFile to a temporary file on disk so Gemini can access it
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
+                            tmp_pdf.write(uploaded_pdf.getvalue())
+                            tmp_pdf_path = tmp_pdf.name
+                            
+                        # Upload to Gemini File API
+                        gemini_file = genai.upload_file(tmp_pdf_path, mime_type="application/pdf")
+                        
+                        prompt = f"""
+                        You are a strict, top-tier Assistant Professor evaluating a highly competitive exam.
+                        I have provided a PDF document of a Question Paper. The subject context is: {subject_hint if subject_hint else "Competitive Exam"}.
+                        
+                        YOUR TASK:
+                        1. Automatically detect every question present in the PDF document.
+                        2. For each question, state the Question Number (and Question Text if short enough).
+                        3. Provide the CORRECT Option/Answer.
+                        4. Provide a DETAILED, step-by-step EXPLANATION for WHY this is the correct answer and why the others are wrong.
+                        
+                        Format your output in beautiful Markdown so it is easy to study.
+                        Use bolding for correct answers.
+                        Structure it clearly:
+                        
+                        ### Q1. [Question text or summary]
+                        *   **Correct Answer:** [The answer]
+                        *   **Explanation:** [Detailed breakdown]
+                        
+                        If there are diagrams or images in the PDF for a question, interpret them as best as you can.
+                        """
+                        
+                        model = genai.GenerativeModel("gemini-1.5-flash")
+                        response = model.generate_content([prompt, gemini_file])
+                        
+                        # Delete the temp file to save space
+                        os.unlink(tmp_pdf_path)
+                        
+                        # Delete the file from Gemini so it doesn't take up storage allowance
+                        genai.delete_file(gemini_file.name)
+                        
+                        st.markdown("### 🎯 Final Answer Key & Explanations:")
+                        st.markdown(f"<div style='background: #111; padding: 2rem; border-radius: 10px; border: 1px solid #333;'>{response.text}</div>", unsafe_allow_html=True)
+                        
+                    except Exception as e:
+                        st.error(f"An error occurred while solving the paper: {str(e)}")
 
 elif nav_choice == "Focus Chamber ⏱️":
     st.markdown(f"""
