@@ -1,6 +1,7 @@
 import streamlit as st
 import plotly.express as px
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import json
 import re
 from fpdf import FPDF
@@ -857,15 +858,15 @@ elif nav_choice == "Question Paper Solver 📄":
                         import tempfile
                         import os
                         
-                        genai.configure(api_key=api_key_solver.strip() if api_key_solver else api_key_solver)
+                        client = genai.Client(api_key=api_key_solver.strip() if api_key_solver else api_key_solver)
                         
                         # Save Streamlit UploadedFile to a temporary file on disk so Gemini can access it
                         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
                             tmp_pdf.write(uploaded_pdf.getvalue())
                             tmp_pdf_path = tmp_pdf.name
                             
-                        # Upload to Gemini File API
-                        gemini_file = genai.upload_file(tmp_pdf_path, mime_type="application/pdf")
+                        # Upload to Gemini File API (new SDK format)
+                        gemini_file = client.files.upload(file=tmp_pdf_path, config={'mime_type': 'application/pdf'})
                         
                         prompt = f"""
                         You are a strict, top-tier Assistant Professor evaluating a highly competitive exam.
@@ -888,14 +889,19 @@ elif nav_choice == "Question Paper Solver 📄":
                         If there are diagrams or images in the PDF for a question, interpret them as best as you can.
                         """
                         
-                        model = genai.GenerativeModel("gemini-1.5-flash")
-                        response = model.generate_content([prompt, gemini_file])
+                        response = client.models.generate_content(
+                            model="gemini-1.5-flash",
+                            contents=[
+                                gemini_file,
+                                prompt
+                            ]
+                        )
                         
                         # Delete the temp file to save space
                         os.unlink(tmp_pdf_path)
                         
                         # Delete the file from Gemini so it doesn't take up storage allowance
-                        genai.delete_file(gemini_file.name)
+                        client.files.delete(name=gemini_file.name)
                         
                         st.markdown("### 🎯 Final Answer Key & Explanations:")
                         st.markdown(f"<div style='background: #111; padding: 2rem; border-radius: 10px; border: 1px solid #333;'>{response.text}</div>", unsafe_allow_html=True)
