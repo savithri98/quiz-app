@@ -846,17 +846,18 @@ elif nav_choice == "Question Paper Solver 📄":
         
         col1, col2 = st.columns([1, 2])
         subject_hint = col1.text_input("Subject/Topic Hint (Optional)", placeholder="e.g. Computer Science")
+        api_key_solver = st.text_input("Gemini API Key (Required for AI Vision)", type="password", key="solver_api_key")
         
         if st.button("🚀 Analyze & Solve Paper", use_container_width=True, type="primary"):
-            if not st.session_state.gemini_api_key:
-                st.error("Please configure your Gemini API Key in the Setup tab first!")
+            if not api_key_solver:
+                st.error("Please provide your Gemini API Key to let the AI read the PDF!")
             else:
                 with st.spinner("Uploading PDF to Gemini's brain... Reading questions... Generating explanations... This may take up to 60 seconds..."):
                     try:
                         import tempfile
                         import os
                         
-                        genai.configure(api_key=st.session_state.gemini_api_key)
+                        genai.configure(api_key=api_key_solver)
                         
                         # Save Streamlit UploadedFile to a temporary file on disk so Gemini can access it
                         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
