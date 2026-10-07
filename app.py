@@ -868,6 +868,20 @@ elif nav_choice == "Question Paper Solver 📄":
                         # Upload to Gemini File API (new SDK format)
                         gemini_file = client.files.upload(file=tmp_pdf_path, config={'mime_type': 'application/pdf'})
                         
+                        import time
+                        
+                        # Wait for the file to finish processing on Google's servers before querying it
+                        waiting_container = st.empty()
+                        while True:
+                            file_info = client.files.get(name=gemini_file.name)
+                            if file_info.state.name == "ACTIVE":
+                                waiting_container.empty()
+                                break
+                            elif file_info.state.name == "FAILED":
+                                raise Exception("Google could not process this PDF file.")
+                            waiting_container.info("🧠 Gemini is still reading the massive PDF. Please wait...")
+                            time.sleep(3)
+                        
                         prompt = f"""
                         You are a strict, top-tier Assistant Professor evaluating a highly competitive exam.
                         I have provided a PDF document of a Question Paper. The subject context is: {subject_hint if subject_hint else "Competitive Exam"}.
@@ -890,7 +904,7 @@ elif nav_choice == "Question Paper Solver 📄":
                         """
                         
                         response = client.models.generate_content(
-                            model="gemini-2.5-flash",
+                            model="gemini-flash-latest",
                             contents=[
                                 gemini_file,
                                 prompt
