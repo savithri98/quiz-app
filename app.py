@@ -903,14 +903,28 @@ elif nav_choice == "Question Paper Solver 📄":
                         If there are diagrams or images in the PDF for a question, interpret them as best as you can.
                         """
                         
-                        response = client.models.generate_content(
-                            model="gemini-flash-latest",
-                            contents=[
-                                gemini_file,
-                                prompt
-                            ]
-                        )
+                        import time
+                        from google.genai.errors import APIError
                         
+                        max_retries = 5
+                        retry_delay = 5
+                        response = None
+                        
+                        for attempt in range(max_retries):
+                            try:
+                                response = client.models.generate_content(
+                                    model="gemini-flash-latest",
+                                    contents=[gemini_file, prompt]
+                                )
+                                break
+                            except APIError as e:
+                                if "503" in str(e) and attempt < max_retries - 1:
+                                    st.warning(f"Google servers are overloaded (Attempt {attempt+1}/{max_retries}). Retrying in {retry_delay} seconds...")
+                                    time.sleep(retry_delay)
+                                    retry_delay *= 2
+                                else:
+                                    raise e
+
                         # Delete the temp file to save space
                         os.unlink(tmp_pdf_path)
                         
