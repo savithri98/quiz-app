@@ -906,6 +906,37 @@ elif nav_choice == "Question Paper Solver 📄":
                         st.markdown("### 🎯 Final Answer Key & Explanations:")
                         st.markdown(f"<div style='background: #111; padding: 2rem; border-radius: 10px; border: 1px solid #333;'>{response.text}</div>", unsafe_allow_html=True)
                         
+                        # Generate PDF Download
+                        from fpdf import FPDF
+                        import re
+                        
+                        pdf = FPDF()
+                        pdf.add_page()
+                        pdf.set_auto_page_break(auto=True, margin=15)
+                        pdf.set_font("Arial", size=12)
+                        
+                        # Strip basic Markdown and remove emojis for standard FPDF
+                        clean_text = re.sub(r'[*_#`]', '', response.text)
+                        safe_text = clean_text.encode('latin-1', 'replace').decode('latin-1')
+                        
+                        pdf.set_font("Arial", 'B', 16)
+                        pdf.cell(200, 10, txt="Question Paper Solutions", ln=True, align='C')
+                        pdf.set_font("Arial", size=12)
+                        pdf.ln(10)
+                        
+                        pdf.multi_cell(0, 8, txt=safe_text)
+                        
+                        pdf_out = pdf.output(dest='S').encode('latin-1')
+                        
+                        st.download_button(
+                            label="📥 Download Answers as PDF",
+                            data=pdf_out,
+                            file_name="solved_question_paper.pdf",
+                            mime="application/pdf",
+                            type="primary",
+                            use_container_width=True
+                        )
+                        
                     except Exception as e:
                         st.error(f"An error occurred while solving the paper: {str(e)}")
 
