@@ -214,8 +214,8 @@ def create_domain_report_pdf(domain, content, image_paths=None):
 
 # --- AI Generation Utility ---
 def generate_questions(domain, difficulty, api_key):
-    genai.configure(api_key=api_key.strip() if api_key else api_key)
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    client = genai.Client(api_key=api_key.strip() if api_key else api_key)
+    model = None
     
     diff_prompt = "a mix of Easy, Medium, and Hard" if difficulty == "Mixed" else f"strictly {difficulty}"
     prompt = f"""You are an expert exam setter. Generate exactly 10 distinct, unique Multiple Choice Questions for a competitive exam.
@@ -237,7 +237,7 @@ Requirements:
     "explanation": "string"
   }}
 ]"""
-    response = model.generate_content(prompt)
+    response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
     text = response.text
     text = re.sub(r'```json\n?', '', text, flags=re.IGNORECASE)
     text = re.sub(r'```\n?', '', text, flags=re.IGNORECASE).strip()
@@ -278,8 +278,7 @@ def generate_youtube_questions(youtube_url, difficulty, api_key):
     # Cap transcript length so we don't blow up token limits
     transcript = transcript_text[:15000] 
     
-    genai.configure(api_key=api_key.strip() if api_key else api_key)
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    client = genai.Client(api_key=api_key.strip() if api_key else api_key)
     
     diff_prompt = "a mix of Easy, Medium, and Hard" if difficulty == "Mixed" else f"strictly {difficulty}"
     prompt = f"""You are an expert exam setter. Read this video transcript and generate exactly 10 distinct, unique Multiple Choice Questions based strictly on the content of the video.
@@ -301,7 +300,7 @@ Requirements:
     "explanation": "string"
   }}
 ]"""
-    response = model.generate_content(prompt)
+    response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
     text = response.text
     text = re.sub(r'```json\n?', '', text, flags=re.IGNORECASE)
     text = re.sub(r'```\n?', '', text, flags=re.IGNORECASE).strip()
@@ -326,8 +325,7 @@ def fetch_domain_images(domain):
     return image_paths
 
 def generate_domain_report(domain, api_key):
-    genai.configure(api_key=api_key.strip() if api_key else api_key)
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    client = genai.Client(api_key=api_key.strip() if api_key else api_key)
     
     internet_context = ""
     try:
@@ -356,12 +354,11 @@ Recent Trends and Developments:
 Common Exam Questions and Tips:
 Summary:"""
 
-    response = model.generate_content(prompt)
+    response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
     return response.text
 
 def generate_current_affairs_report(date_str, region, api_key):
-    genai.configure(api_key=api_key.strip() if api_key else api_key)
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    client = genai.Client(api_key=api_key.strip() if api_key else api_key)
     
     search_topic = "Karnataka State" if region == "Karnataka" else "India"
     
@@ -388,7 +385,7 @@ FORMATTING RULES:
 - Be purely educational and factual, tailored for a student preparing for KRIES / KPSC exams.
 - If the internet snippets don't have enough data for that exact date, provide general important current affairs from that specific month/week of that year for {search_topic}."""
     
-    response = model.generate_content(prompt)
+    response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
     return response.text
 
 # --- State Management ---
